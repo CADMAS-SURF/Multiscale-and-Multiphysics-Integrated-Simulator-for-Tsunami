@@ -2,8 +2,8 @@
 We develop a numerical fluid simulator coupled with a structural analysis. The purpose of this system is to efficiently calculate all stages of a tsunami from source to runup, including structural deformation. 
 Specifically, a semi three-dimensional model (STOC-ML) assuming hydrostatic pressure is used from the source to the propagation of tsunami waves, and this is connected to the single-phase Navier-Stokes equation (CADMAS-SURF/3D), which calculates the sea surface using the VOF method, and then, in order to consider the effect of the gas phase, the single-phase VOF method is connected to the gas-liquid two-phase VOF method (CADMAS-2F) and finally to the structural and ground calculations (STR3D), which are calculated using FEM.
 # Simulators
-1. **STOC-ML** (Hydrostatic model for calculating fluid motion due to tsunami)
-2. **STOC-IC** (Non-hydrostatic model for calculating fluid motion due to tsunami)
+1. [**STOC-ML**](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Simulators/STOC) (Hydrostatic model for calculating fluid motion due to tsunami)
+2. [**STOC-IC**](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Simulators/STOC) (Non-hydrostatic model for calculating fluid motion due to tsunami)
 3. **CADMAS-SURF/3D** (Single-phase model for three-dimensional incompressible fluid)
 4. **CADMAS-2F** (Gas-liquid two-phase model for three-dimensional incompressible fluid)
 5. **STR3D** (FEM-based structural and soil calculation model)
