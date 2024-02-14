@@ -7,7 +7,7 @@ Specifically, a semi three-dimensional model (STOC-ML) assuming hydrostatic pres
 3. **CADMAS-SURF/3D** (Single-phase model for three-dimensional incompressible fluid)
 4. **CADMAS-2F** (Gas-liquid two-phase model for three-dimensional incompressible fluid)
 5. **STR3D** (FEM-based structural and soil calculation model)
-6. **AGENT** (evacuation simulator)
+6. **AGENT** (Evacuation simulator)
 # Pre and post-processor
 1. **CADMAS-MESH-MULTI** (STOC-ML and STOC-IC input data preparation support tool)
 2. **CADMAS-MESH** (CADMAS-SURF/3D and CADMAS-2F input data preparation support tool)
