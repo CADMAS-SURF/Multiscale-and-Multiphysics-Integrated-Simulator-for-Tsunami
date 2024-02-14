@@ -1,0 +1,40 @@
+      SUBROUTINE FMP_BAR(IOUT,NEB,NBAR,IELM,NM,SIGG,MGP,IFL)
+
+      USE MPI_PARAM
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      CHARACTER*1 C /','/
+      DIMENSION SIGG(6*MGP,*),IELM(NM,*)
+
+      INTEGER, POINTER :: IENO(:)
+      REAL(8), POINTER :: SIG(:)
+
+      IF( MYRANK == 0 .AND. NBAR == 0 ) RETURN
+
+      ALLOCATE( IENO(NBAR) )
+      ALLOCATE( SIG(NBAR) )
+
+      IENO(:) = IELM(1,NEB+1:NEB+NBAR)
+      SIG(:) = SIGG(13,NEB+1:NEB+NBAR)
+
+      IF( MYRANK == 0 ) THEN
+
+        WRITE(IFL,'(3(I0,A))') IOUT,C,81,C,1,C
+
+        WRITE(IFL,'(A)') 'Bar Axial Stress'
+
+        CALL WT_VEC(0,0,0,8,IENO,SIG,1,1,NBAR,IFL)
+
+      ELSE
+
+       CALL M_MPI_SEND_I(NEB,1,0)
+       CALL M_MPI_SEND_I(NBAR,1,0)
+       CALL M_MPI_SEND_I(IENO,NBAR,0)
+       CALL M_MPI_SEND_D(SIG,NBAR,0)
+
+      ENDIF
+
+      DEALLOCATE( IENO )
+      DEALLOCATE( SIG )
+
+      END

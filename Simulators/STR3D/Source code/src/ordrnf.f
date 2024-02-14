@@ -1,0 +1,30 @@
+      SUBROUTINE ORDRNF(A,B,N,NB)
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+C
+C      ORDERING IN DESCENDING SEQUENCE
+C
+C      OUTPUT
+C      A...EIGVAL,B(I,1)..1ST EIGVECTR, B(I,2)..2ND EIGVECTR...
+C
+      DIMENSION A(*),B(NB,*)
+C
+      NM=N-1
+      DO 4000 J=1,NM
+      VMAX=-1.0E+30
+      DO 2000 I=J,N
+      IF(A(I).LT.VMAX) GO TO 2000
+      IM=I
+      VMAX=A(I)
+ 2000 CONTINUE
+      AA=A(J)
+      A(J)=A(IM)
+      A(IM)=AA
+      DO 3000 K=1,NB
+      BB=B(K,J)
+      B(K,J)=B(K,IM)
+ 3000 B(K,IM)=BB
+ 4000 CONTINUE
+C
+      RETURN
+      END

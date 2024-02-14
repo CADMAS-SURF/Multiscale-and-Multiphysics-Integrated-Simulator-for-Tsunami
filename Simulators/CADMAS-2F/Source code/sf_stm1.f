@@ -1,0 +1,18 @@
+      SUBROUTINE SF_STM1(DT)
+
+      USE VF_A2ARRAY
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      INCLUDE 'VF_A0PRM.h'
+      INCLUDE 'VF_AFILEI.h'
+      INCLUDE 'SF_STRUCT.h'
+
+      IENS=0
+      IF( IENS == 1 ) CALL SF_ENS_GEOM(XX,YY,ZZ)
+
+      CALL SF_DPTH_INIT(XX,YY,ZZ,FF,GGW,GGR,NF)
+
+      IF( IRETYP > 0 ) CALL SF_RD_RESTART(DT)
+
+      END

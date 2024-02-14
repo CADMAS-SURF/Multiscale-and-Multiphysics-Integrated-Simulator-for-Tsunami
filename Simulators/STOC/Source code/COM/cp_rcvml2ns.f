@@ -1,0 +1,872 @@
+      SUBROUTINE CP_RCVML2NS(KF_ML,KG_ML,IBUF,
+     1                       UU_ML,VV_ML,WW_ML,TT_ML,CC_ML,X1_ML,X2_ML,
+     $                       HH_ML,HDEP_ML,CSD_ML,ZBD_ML,BUF,
+     2                       MX_ML,MY_ML,MZ_ML,
+     3                       IEAS,IWES,JSOU,JNOR,KBOT,KTOP,
+     4                       NESXM,NESXP,NESYM,NESYP,IFL)
+C-----------------------------------------------------------------------
+C     IPFLG=0 : MLの境界値(流速,潮位)を受信する。
+C     IPFLG=1 : MLの境界値(流速,潮位)をファイルから入力する。
+C     IPFLG=-1: MLの境界値(流速,潮位)ファイルの入力をスキップする。
+C
+C       LTURB=3 : X1=Q2,X2=QL
+C       LTURB=4 : X1=AK
+C-----------------------------------------------------------------------
+C
+      use mod_comm,only: comm_model
+      IMPLICIT NONE
+C
+      INCLUDE  'MODELI.h'
+      INCLUDE  'CP_NESTBC.h'
+      INCLUDE  'CONNEC.h'
+      INCLUDE  'BOUNDI.h'
+      INCLUDE  'FILE.h'
+      INCLUDE  'TIMER.h'
+      INCLUDE  'mpif.h'
+C
+      INTEGER,INTENT(INOUT)::MX_ML,MY_ML,MZ_ML
+      INTEGER,INTENT(INOUT)::IEAS,IWES,JSOU,JNOR,KBOT,KTOP
+      INTEGER,INTENT(INOUT)::NESXM,NESXP,NESYM,NESYP
+      INTEGER,INTENT(INOUT)::IFL
+C
+      INTEGER,INTENT(INOUT)::KF_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1)
+      INTEGER,INTENT(INOUT)::KG_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1)
+      INTEGER,INTENT(INOUT)::IBUF(*)
+C
+      REAL(8),INTENT(INOUT)::
+     $   UU_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1,KBOT-1:KTOP+1),
+     $   VV_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1,KBOT-1:KTOP+1),
+     $   WW_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1,KBOT-1:KTOP+1),
+     $   TT_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1,KBOT-1:KTOP+1),
+     $   CC_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1,KBOT-1:KTOP+1),
+     $   CSD_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1,KBOT-1:KTOP+1),
+     $   ZBD_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1),
+     $   X1_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1,KBOT-1:KTOP+1),
+     $   X2_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1,KBOT-1:KTOP+1),
+     $   HH_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1),
+     $   HDEP_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1)
+      REAL(8),INTENT(INOUT)::BUF(*)
+C
+      INTEGER::ISTAT(MPI_STATUS_SIZE)
+C
+      INTEGER::I,IERROR,IPARNT,IREQ,J,K,NCOUNT,NDATA,N3D,N2D
+      REAL(8)::TIMED
+C
+C ... 境界条件ファイルをスキップ
+      IF(IPFLG.NE.0) THEN
+        IF(TIMVB.GT.1.0D10) RETURN
+        IF((IFL.EQ.1.AND.TIME.LT.TIMVF).OR.
+     &     (IFL.EQ.2.AND.TIME.LT.TIMHF)) THEN
+          RETURN
+        END IF
+      END IF
+      IF(IPFLG.NE.0) IPFLG=-1
+ccccc
+ccc      write(6,*) 'R ifl,ipflg=',ifl,ipflg
+C
+      IPARNT=IPECON(2,NRANK+1)
+C
+      N3D = (IEAS-IWES+3)*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+      N2D = (IEAS-IWES+3)*(JNOR-JSOU+3)
+C ...... 境界流速を受信する
+      IF(IFL.EQ.0.OR.IFL.EQ.1) THEN
+C
+C ... UU_MLを受信する。
+         CALL ZERCLR(UU_ML,N3D,0.0D0)
+C
+C         NDATA=2*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+C     &        +4*(IEAS-IWES+3)*(KTOP-KBOT+3)
+         NDATA=2*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+     &        +4*(IEAS-IWES)*(KTOP-KBOT+3)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=990) TIMVF,(BUF(K),K=1,NDATA)
+cccccc
+ccc      write(6,*) 'R UU_ML,TIME=',TIME
+         END IF
+C
+         NCOUNT=0
+         DO 100 K=KBOT-1,KTOP+1
+         DO 100 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         UU_ML(IWES-1,J,K)=BUF(NCOUNT)
+  100    CONTINUE
+C
+         DO 110 K=KBOT-1,KTOP+1
+         DO 110 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         UU_ML(IEAS,J,K)=BUF(NCOUNT)
+  110    CONTINUE
+C
+         DO 120 K=KBOT-1,KTOP+1
+C         DO 120 I=IWES-1,IEAS+1
+         DO 120 I=IWES,IEAS-1
+         NCOUNT=NCOUNT+1
+         UU_ML(I,JSOU-1,K)=BUF(NCOUNT)
+  120    CONTINUE
+C
+         DO 130 K=KBOT-1,KTOP+1
+C         DO 130 I=IWES-1,IEAS+1
+         DO 130 I=IWES,IEAS-1
+         NCOUNT=NCOUNT+1
+         UU_ML(I,JSOU,K)=BUF(NCOUNT)
+  130    CONTINUE
+C
+         DO 140 K=KBOT-1,KTOP+1
+C         DO 140 I=IWES-1,IEAS+1
+         DO 140 I=IWES,IEAS-1
+         NCOUNT=NCOUNT+1
+         UU_ML(I,JNOR,K)=BUF(NCOUNT)
+  140    CONTINUE
+C
+         DO 150 K=KBOT-1,KTOP+1
+C         DO 150 I=IWES-1,IEAS+1
+         DO 150 I=IWES,IEAS-1
+         NCOUNT=NCOUNT+1
+         UU_ML(I,JNOR+1,K)=BUF(NCOUNT)
+  150    CONTINUE
+C
+C ... VV_MLを受信する。
+         CALL ZERCLR(VV_ML,N3D,0.0D0)
+C
+C         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+C     &        +2*(IEAS-IWES+3)*(KTOP-KBOT+3)
+         NDATA=4*(JNOR-JSOU)*(KTOP-KBOT+3)
+     &        +2*(IEAS-IWES+3)*(KTOP-KBOT+3)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=991) TIMVF,(BUF(K),K=1,NDATA)
+cccccc
+ccc      write(6,*) 'R VV_ML,TIME=',TIME
+         END IF
+C
+         NCOUNT=0
+         DO 200 K=KBOT-1,KTOP+1
+C         DO 200 J=JSOU-1,JNOR+1
+         DO 200 J=JSOU,JNOR-1
+         NCOUNT=NCOUNT+1
+         VV_ML(IWES-1,J,K)=BUF(NCOUNT)
+  200    CONTINUE
+C
+         DO 210 K=KBOT-1,KTOP+1
+C         DO 210 J=JSOU-1,JNOR+1
+         DO 210 J=JSOU,JNOR-1
+         NCOUNT=NCOUNT+1
+         VV_ML(IWES,J,K)=BUF(NCOUNT)
+  210    CONTINUE
+C
+         DO 220 K=KBOT-1,KTOP+1
+C         DO 220 J=JSOU-1,JNOR+1
+         DO 220 J=JSOU,JNOR-1
+         NCOUNT=NCOUNT+1
+         VV_ML(IEAS,J,K)=BUF(NCOUNT)
+  220    CONTINUE
+C
+         DO 230 K=KBOT-1,KTOP+1
+C         DO 230 J=JSOU-1,JNOR+1
+         DO 230 J=JSOU,JNOR-1
+         NCOUNT=NCOUNT+1
+         VV_ML(IEAS+1,J,K)=BUF(NCOUNT)
+  230    CONTINUE
+C
+         DO 240 K=KBOT-1,KTOP+1
+         DO 240 I=IWES-1,IEAS+1
+         NCOUNT=NCOUNT+1
+         VV_ML(I,JSOU-1,K)=BUF(NCOUNT)
+  240    CONTINUE
+C
+         DO 250 K=KBOT-1,KTOP+1
+         DO 250 I=IWES-1,IEAS+1
+         NCOUNT=NCOUNT+1
+         VV_ML(I,JNOR,K)=BUF(NCOUNT)
+  250    CONTINUE
+C
+C ... WW_MLを受信する。
+         CALL ZERCLR(WW_ML,N3D,0.0D0)
+C
+C         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+C     &        +4*(IEAS-IWES+3)*(KTOP-KBOT+3)
+         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+     &        +4*MAX(0,IEAS-IWES-1)*(KTOP-KBOT+3)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=991) TIMVF,(BUF(K),K=1,NDATA)
+cccccc
+ccc      write(6,*) 'R WW_ML,TIME=',TIME
+         END IF
+C
+         NCOUNT=0
+         DO 300 K=KBOT-1,KTOP+1
+         DO 300 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         WW_ML(IWES-1,J,K)=BUF(NCOUNT)
+  300    CONTINUE
+C
+         DO 310 K=KBOT-1,KTOP+1
+         DO 310 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         WW_ML(IWES,J,K)=BUF(NCOUNT)
+  310    CONTINUE
+C
+         DO 320 K=KBOT-1,KTOP+1
+         DO 320 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         WW_ML(IEAS,J,K)=BUF(NCOUNT)
+  320    CONTINUE
+C
+         DO 330 K=KBOT-1,KTOP+1
+         DO 330 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         WW_ML(IEAS+1,J,K)=BUF(NCOUNT)
+  330    CONTINUE
+C
+         DO 340 K=KBOT-1,KTOP+1
+C         DO 340 I=IWES-1,IEAS+1
+         DO 340 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         WW_ML(I,JSOU-1,K)=BUF(NCOUNT)
+  340    CONTINUE
+C
+         DO 350 K=KBOT-1,KTOP+1
+C         DO 350 I=IWES-1,IEAS+1
+         DO 350 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         WW_ML(I,JSOU,K)=BUF(NCOUNT)
+  350    CONTINUE
+C
+         DO 360 K=KBOT-1,KTOP+1
+C         DO 360 I=IWES-1,IEAS+1
+         DO 360 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         WW_ML(I,JNOR,K)=BUF(NCOUNT)
+  360    CONTINUE
+C
+         DO 370 K=KBOT-1,KTOP+1
+C         DO 370 I=IWES-1,IEAS+1
+         DO 370 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         WW_ML(I,JNOR+1,K)=BUF(NCOUNT)
+  370    CONTINUE
+C
+         IF(LTEMP.EQ.1) THEN
+C ... TT_MLを受信する。
+         CALL ZERCLR(TT_ML,N3D,0.0D0)
+C
+C         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+C     &        +4*(IEAS-IWES+3)*(KTOP-KBOT+3)
+         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+     &        +4*MAX(0,IEAS-IWES-1)*(KTOP-KBOT+3)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=991) TIMED,(BUF(K),K=1,NDATA)
+         END IF
+C
+         NCOUNT=0
+         DO 800 K=KBOT-1,KTOP+1
+         DO 800 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         TT_ML(IWES-1,J,K)=BUF(NCOUNT)
+  800    CONTINUE
+C
+         DO 810 K=KBOT-1,KTOP+1
+         DO 810 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         TT_ML(IWES,J,K)=BUF(NCOUNT)
+  810    CONTINUE
+C
+         DO 820 K=KBOT-1,KTOP+1
+         DO 820 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         TT_ML(IEAS,J,K)=BUF(NCOUNT)
+  820    CONTINUE
+C
+         DO 830 K=KBOT-1,KTOP+1
+         DO 830 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         TT_ML(IEAS+1,J,K)=BUF(NCOUNT)
+  830    CONTINUE
+C
+         DO 840 K=KBOT-1,KTOP+1
+C         DO 840 I=IWES-1,IEAS+1
+         DO 840 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         TT_ML(I,JSOU-1,K)=BUF(NCOUNT)
+  840    CONTINUE
+C
+         DO 850 K=KBOT-1,KTOP+1
+C         DO 850 I=IWES-1,IEAS+1
+         DO 850 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         TT_ML(I,JSOU,K)=BUF(NCOUNT)
+  850    CONTINUE
+C
+         DO 860 K=KBOT-1,KTOP+1
+C         DO 860 I=IWES-1,IEAS+1
+         DO 860 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         TT_ML(I,JNOR,K)=BUF(NCOUNT)
+  860    CONTINUE
+C
+         DO 870 K=KBOT-1,KTOP+1
+C         DO 870 I=IWES-1,IEAS+1
+         DO 870 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         TT_ML(I,JNOR+1,K)=BUF(NCOUNT)
+  870    CONTINUE
+         END IF
+C
+         IF(LCONC.EQ.1) THEN
+C ... CC_MLを受信する。
+         CALL ZERCLR(CC_ML,N3D,0.0D0)
+C
+C         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+C     &        +4*(IEAS-IWES+3)*(KTOP-KBOT+3)
+         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+     &        +4*MAX(0,IEAS-IWES-1)*(KTOP-KBOT+3)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=991) TIMED,(BUF(K),K=1,NDATA)
+         END IF
+C
+         NCOUNT=0
+         DO 900 K=KBOT-1,KTOP+1
+         DO 900 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         CC_ML(IWES-1,J,K)=BUF(NCOUNT)
+  900    CONTINUE
+C
+         DO 910 K=KBOT-1,KTOP+1
+         DO 910 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         CC_ML(IWES,J,K)=BUF(NCOUNT)
+  910    CONTINUE
+C
+         DO 920 K=KBOT-1,KTOP+1
+         DO 920 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         CC_ML(IEAS,J,K)=BUF(NCOUNT)
+  920    CONTINUE
+C
+         DO 930 K=KBOT-1,KTOP+1
+         DO 930 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         CC_ML(IEAS+1,J,K)=BUF(NCOUNT)
+  930    CONTINUE
+C
+         DO 940 K=KBOT-1,KTOP+1
+C         DO 940 I=IWES-1,IEAS+1
+         DO 940 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         CC_ML(I,JSOU-1,K)=BUF(NCOUNT)
+  940    CONTINUE
+C
+         DO 950 K=KBOT-1,KTOP+1
+C         DO 950 I=IWES-1,IEAS+1
+         DO 950 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         CC_ML(I,JSOU,K)=BUF(NCOUNT)
+  950    CONTINUE
+C
+         DO 960 K=KBOT-1,KTOP+1
+C         DO 960 I=IWES-1,IEAS+1
+         DO 960 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         CC_ML(I,JNOR,K)=BUF(NCOUNT)
+  960    CONTINUE
+C
+         DO 970 K=KBOT-1,KTOP+1
+C         DO 970 I=IWES-1,IEAS+1
+         DO 970 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         CC_ML(I,JNOR+1,K)=BUF(NCOUNT)
+  970    CONTINUE
+         END IF
+C
+         IF(LTURB.GE.3) THEN
+C ...... X1_MLを受信する。
+         CALL ZERCLR(X1_ML,N3D,0.0D0)
+C
+C         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+C     &        +4*(IEAS-IWES+3)*(KTOP-KBOT+3)
+         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+     &        +4*MAX(0,IEAS-IWES-1)*(KTOP-KBOT+3)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=991) TIMED,(BUF(K),K=1,NDATA)
+         END IF
+C
+         NCOUNT=0
+         DO 1000 K=KBOT-1,KTOP+1
+         DO 1000 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         X1_ML(IWES-1,J,K)=BUF(NCOUNT)
+ 1000    CONTINUE
+C
+         DO 1010 K=KBOT-1,KTOP+1
+         DO 1010 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         X1_ML(IWES,J,K)=BUF(NCOUNT)
+ 1010    CONTINUE
+C
+         DO 1020 K=KBOT-1,KTOP+1
+         DO 1020 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         X1_ML(IEAS,J,K)=BUF(NCOUNT)
+ 1020    CONTINUE
+C
+         DO 1030 K=KBOT-1,KTOP+1
+         DO 1030 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         X1_ML(IEAS+1,J,K)=BUF(NCOUNT)
+ 1030    CONTINUE
+C
+         DO 1040 K=KBOT-1,KTOP+1
+C         DO 1040 I=IWES-1,IEAS+1
+         DO 1040 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         X1_ML(I,JSOU-1,K)=BUF(NCOUNT)
+ 1040    CONTINUE
+C
+         DO 1050 K=KBOT-1,KTOP+1
+C         DO 1050 I=IWES-1,IEAS+1
+         DO 1050 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         X1_ML(I,JSOU,K)=BUF(NCOUNT)
+ 1050    CONTINUE
+C
+         DO 1060 K=KBOT-1,KTOP+1
+C         DO 1060 I=IWES-1,IEAS+1
+         DO 1060 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         X1_ML(I,JNOR,K)=BUF(NCOUNT)
+ 1060    CONTINUE
+C
+         DO 1070 K=KBOT-1,KTOP+1
+C         DO 1070 I=IWES-1,IEAS+1
+         DO 1070 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         X1_ML(I,JNOR+1,K)=BUF(NCOUNT)
+ 1070    CONTINUE
+         END IF
+C
+         IF(LTURB.EQ.3) THEN
+C ... X2_MLを受信する。
+         CALL ZERCLR(X2_ML,N3D,0.0D0)
+C
+C         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+C     &        +4*(IEAS-IWES+3)*(KTOP-KBOT+3)
+         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+     &        +4*MAX(0,IEAS-IWES-1)*(KTOP-KBOT+3)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=991) TIMED,(BUF(K),K=1,NDATA)
+         END IF
+C
+         NCOUNT=0
+         DO 1100 K=KBOT-1,KTOP+1
+         DO 1100 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         X2_ML(IWES-1,J,K)=BUF(NCOUNT)
+ 1100    CONTINUE
+C
+         DO 1110 K=KBOT-1,KTOP+1
+         DO 1110 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         X2_ML(IWES,J,K)=BUF(NCOUNT)
+ 1110    CONTINUE
+C
+         DO 1120 K=KBOT-1,KTOP+1
+         DO 1120 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         X2_ML(IEAS,J,K)=BUF(NCOUNT)
+ 1120    CONTINUE
+C
+         DO 1130 K=KBOT-1,KTOP+1
+         DO 1130 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         X2_ML(IEAS+1,J,K)=BUF(NCOUNT)
+ 1130    CONTINUE
+C
+         DO 1140 K=KBOT-1,KTOP+1
+C         DO 1140 I=IWES-1,IEAS+1
+         DO 1140 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         X2_ML(I,JSOU-1,K)=BUF(NCOUNT)
+ 1140    CONTINUE
+C
+         DO 1150 K=KBOT-1,KTOP+1
+C         DO 1150 I=IWES-1,IEAS+1
+         DO 1150 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         X2_ML(I,JSOU,K)=BUF(NCOUNT)
+ 1150    CONTINUE
+C
+         DO 1160 K=KBOT-1,KTOP+1
+C         DO 1160 I=IWES-1,IEAS+1
+         DO 1160 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         X2_ML(I,JNOR,K)=BUF(NCOUNT)
+ 1160    CONTINUE
+C
+         DO 1170 K=KBOT-1,KTOP+1
+C         DO 1170 I=IWES-1,IEAS+1
+         DO 1170 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         X2_ML(I,JNOR+1,K)=BUF(NCOUNT)
+ 1170    CONTINUE
+C
+C ..... X2_MLを空読み
+         ELSE IF(LTURB.EQ.4) THEN
+         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+     &        +4*MAX(0,IEAS-IWES-1)*(KTOP-KBOT+3)
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=991) TIMED,(BUF(K),K=1,NDATA)
+         END IF
+C
+         END IF
+C
+         IF(LSEDI.EQ.1) THEN
+C ... CSD_MLを受信する。
+         CALL ZERCLR(CSD_ML,N3D,0.0D0)
+C
+         NDATA=4*(JNOR-JSOU+3)*(KTOP-KBOT+3)
+     &        +4*MAX(0,IEAS-IWES-1)*(KTOP-KBOT+3)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+            CALL ERRMSG('CP_RCVML2NS',6290)
+            WRITE(LP,*) 'ipflg=1 is unexpected : sub.cp_rcvml2ns'
+            CALL ABORT1('')
+CCC         READ(IFLBI,END=991) TIMED,(BUF(K),K=1,NDATA)
+         END IF
+C
+         NCOUNT=0
+         DO 1200 K=KBOT-1,KTOP+1
+         DO 1200 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         CSD_ML(IWES-1,J,K)=BUF(NCOUNT)
+ 1200    CONTINUE
+C
+         DO 1210 K=KBOT-1,KTOP+1
+         DO 1210 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         CSD_ML(IWES,J,K)=BUF(NCOUNT)
+ 1210    CONTINUE
+C
+         DO 1220 K=KBOT-1,KTOP+1
+         DO 1220 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         CSD_ML(IEAS,J,K)=BUF(NCOUNT)
+ 1220    CONTINUE
+C
+         DO 1230 K=KBOT-1,KTOP+1
+         DO 1230 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         CSD_ML(IEAS+1,J,K)=BUF(NCOUNT)
+ 1230    CONTINUE
+C
+         DO 1240 K=KBOT-1,KTOP+1
+         DO 1240 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         CSD_ML(I,JSOU-1,K)=BUF(NCOUNT)
+ 1240    CONTINUE
+C
+         DO 1250 K=KBOT-1,KTOP+1
+         DO 1250 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         CSD_ML(I,JSOU,K)=BUF(NCOUNT)
+ 1250    CONTINUE
+C
+         DO 1260 K=KBOT-1,KTOP+1
+         DO 1260 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         CSD_ML(I,JNOR,K)=BUF(NCOUNT)
+ 1260    CONTINUE
+C
+         DO 1270 K=KBOT-1,KTOP+1
+         DO 1270 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         CSD_ML(I,JNOR+1,K)=BUF(NCOUNT)
+ 1270    CONTINUE
+C
+C ... ZBD_MLを受信する。
+         CALL ZERCLR(ZBD_ML,N2D,0.0D0)
+C
+         NDATA=4*(JNOR-JSOU+3)+4*MAX(0,IEAS-IWES-1)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+            CALL ERRMSG('CP_RCVML2NS',6291)
+            WRITE(LP,*) 'ipflg=1 is unexpected : sub.cp_rcvml2ns'
+            CALL ABORT1('')
+CCC         READ(IFLBI,END=991) TIMED,(BUF(K),K=1,NDATA)
+         END IF
+C
+         NCOUNT=0
+         DO 1300 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         ZBD_ML(IWES-1,J)=BUF(NCOUNT)
+ 1300    CONTINUE
+C
+         DO 1310 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         ZBD_ML(IWES,J)=BUF(NCOUNT)
+ 1310    CONTINUE
+C
+         DO 1320 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         ZBD_ML(IEAS,J)=BUF(NCOUNT)
+ 1320    CONTINUE
+C
+         DO 1330 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         ZBD_ML(IEAS+1,J)=BUF(NCOUNT)
+ 1330    CONTINUE
+C
+         DO 1340 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         ZBD_ML(I,JSOU-1)=BUF(NCOUNT)
+ 1340    CONTINUE
+C
+         DO 1350 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         ZBD_ML(I,JSOU)=BUF(NCOUNT)
+ 1350    CONTINUE
+C
+         DO 1360 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         ZBD_ML(I,JNOR)=BUF(NCOUNT)
+ 1360    CONTINUE
+C
+         DO 1370 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         ZBD_ML(I,JNOR+1)=BUF(NCOUNT)
+ 1370    CONTINUE
+C
+         END IF
+C
+      END IF
+C
+C ...... 水位関連データを受信する
+      IF(IFL.EQ.0.OR.IFL.EQ.2) THEN
+C
+C ... HH_MLを受信する。
+         CALL ZERCLR(HH_ML,N2D,0.0D0)
+C
+         NDATA=(JNOR-JSOU+3)*(NESXM+2)+(JNOR-JSOU+3)*(NESXP+2)
+     &        +(NESYM+2)*MAX(0,IEAS-IWES-NESXP-NESXM-1)
+     &        +(NESYP+2)*MAX(0,IEAS-IWES-NESXP-NESXM-1)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=991) TIMHF,(BUF(K),K=1,NDATA)
+cccccc
+ccc      write(6,*) 'R HH_ML,TIMHF=',TIMHF
+         END IF
+C
+         NCOUNT=0
+         DO 400 J=JSOU-1,JNOR+1
+         DO 400 I=IWES-1,IWES+NESXM
+         NCOUNT=NCOUNT+1
+         HH_ML(I,J)=BUF(NCOUNT)
+  400    CONTINUE
+C
+         DO 410 J=JSOU-1,JNOR+1
+         DO 410 I=IEAS-NESXP,IEAS+1
+         NCOUNT=NCOUNT+1
+         HH_ML(I,J)=BUF(NCOUNT)
+  410    CONTINUE
+C
+         DO 420 J=JSOU-1,JSOU+NESYM
+         DO 420 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         HH_ML(I,J)=BUF(NCOUNT)
+  420    CONTINUE
+C
+         DO 430 J=JNOR-NESYP,JNOR+1
+         DO 430 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         HH_ML(I,J)=BUF(NCOUNT)
+  430    CONTINUE
+C
+C ... KG_MLを受信する。
+C        (最初のみ）
+         IF(IFL.EQ.0) THEN
+         CALL ZERCLI(KG_ML,N2D,0)
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(IBUF,NDATA,MPI_INTEGER,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=991) TIMHB,(IBUF(K),K=1,NDATA)
+cccccc
+ccc      write(6,*) 'R KG_ML,TIMHB=',TIMHB
+         END IF
+C
+         NCOUNT=0
+         DO 500 J=JSOU-1,JNOR+1
+         DO 500 I=IWES-1,IWES+NESXM
+         NCOUNT=NCOUNT+1
+         KG_ML(I,J)=IBUF(NCOUNT)
+  500    CONTINUE
+C
+         DO 510 J=JSOU-1,JNOR+1
+         DO 510 I=IEAS-NESXP,IEAS+1
+         NCOUNT=NCOUNT+1
+         KG_ML(I,J)=IBUF(NCOUNT)
+  510    CONTINUE
+C
+         DO 520 J=JSOU-1,JSOU+NESYM
+         DO 520 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         KG_ML(I,J)=IBUF(NCOUNT)
+  520    CONTINUE
+C
+         DO 530 J=JNOR-NESYP,JNOR+1
+         DO 530 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         KG_ML(I,J)=IBUF(NCOUNT)
+  530    CONTINUE
+C
+         END IF
+C
+C ... KF_MLを受信する。
+         CALL ZERCLI(KF_ML,N2D,0)
+C
+         IF(IPFLG.EQ.0) THEN
+         CALL MPI_IRECV(IBUF,NDATA,MPI_INTEGER,IPARNT,
+     &                  MPI_ANY_TAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+         ELSE
+         READ(IFLBI,END=991) TIMHF,(IBUF(K),K=1,NDATA)
+cccccc
+ccc      write(6,*) 'R KF_ML,TIMHF=',TIMHF
+         END IF
+C
+         NCOUNT=0
+         DO 600 J=JSOU-1,JNOR+1
+         DO 600 I=IWES-1,IWES+NESXM
+         NCOUNT=NCOUNT+1
+         KF_ML(I,J)=IBUF(NCOUNT)
+  600    CONTINUE
+C
+         DO 610 J=JSOU-1,JNOR+1
+         DO 610 I=IEAS-NESXP,IEAS+1
+         NCOUNT=NCOUNT+1
+         KF_ML(I,J)=IBUF(NCOUNT)
+  610    CONTINUE
+C
+         DO 620 J=JSOU-1,JSOU+NESYM
+         DO 620 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         KF_ML(I,J)=IBUF(NCOUNT)
+  620    CONTINUE
+C
+         DO 630 J=JNOR-NESYP,JNOR+1
+         DO 630 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         KF_ML(I,J)=IBUF(NCOUNT)
+  630    CONTINUE
+C
+      ENDIF
+C
+      IF(IFL.NE.0) RETURN
+C
+C ... HDEP_MLを受信する。
+      CALL ZERCLR(HDEP_ML,N2D,0.0D0)
+C
+      NDATA=(JNOR-JSOU+3)*(NESXM+2)+(JNOR-JSOU+3)*(NESXP+2)
+     &     +(NESYM+2)*MAX(0,IEAS-IWES-NESXP-NESXM-1)
+     &     +(NESYP+2)*MAX(0,IEAS-IWES-NESXP-NESXM-1)
+C
+      IF(IPFLG.EQ.0) THEN
+      CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &               MPI_ANY_TAG,comm_model,IREQ,IERROR)
+      CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+      ELSE
+      READ(IFLBI,END=991) TIMHB,(BUF(K),K=1,NDATA)
+cccccc
+ccc      write(6,*) 'R HDEP_ML,TIMHB=',TIMHB
+      END IF
+C
+      NCOUNT=0
+      DO 700 J=JSOU-1,JNOR+1
+      DO 700 I=IWES-1,IWES+NESXM
+      NCOUNT=NCOUNT+1
+      HDEP_ML(I,J)=BUF(NCOUNT)
+  700 CONTINUE
+C
+      DO 710 J=JSOU-1,JNOR+1
+      DO 710 I=IEAS-NESXP,IEAS+1
+      NCOUNT=NCOUNT+1
+      HDEP_ML(I,J)=BUF(NCOUNT)
+  710 CONTINUE
+C
+      DO 720 J=JSOU-1,JSOU+NESYM
+      DO 720 I=IWES+NESXM+1,IEAS-NESXP-1
+      NCOUNT=NCOUNT+1
+      HDEP_ML(I,J)=BUF(NCOUNT)
+  720 CONTINUE
+C
+      DO 730 J=JNOR-NESYP,JNOR+1
+      DO 730 I=IWES+NESXM+1,IEAS-NESXP-1
+      NCOUNT=NCOUNT+1
+      HDEP_ML(I,J)=BUF(NCOUNT)
+  730 CONTINUE
+C
+      RETURN
+C
+  990 CONTINUE
+      WRITE(LP,*) '### B.C.-FILE ERROR ### FILE END-TIME < TIME'
+      WRITE(LP,*) '    LAST TIME,TIME=',TIMVF,TIME
+      IPFLG = 1
+      TIMVB = 1.1D10
+      IFL = 8
+      RETURN
+  991 CONTINUE
+      CALL ERRMSG('CP_RCVML2NS',6292)
+      WRITE(LP,*) '### B.C.-FILE ERROR ### FILE DATA FORMAT'
+      CALL ABORT1('')
+      RETURN
+      END

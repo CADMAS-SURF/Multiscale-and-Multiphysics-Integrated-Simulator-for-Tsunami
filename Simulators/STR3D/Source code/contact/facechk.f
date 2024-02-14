@@ -1,0 +1,27 @@
+      SUBROUTINE FACECHK(ISLV,RSLV,POSSO,POSSN,MASTER,FC,FTOL,IELC,IEDG
+     &                  ,IELA,ICELA,ICEL,IBTE,ICFCA,ICFC,POSO,POSN,ISTK
+     &                  ,TOL,ITO)
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      LOGICAL AREAIN
+      DIMENSION RL(3),IELC(3,*),POSO(3,*),POSN(3,*),ISLV(2),FC(3)
+     &         ,IEDG(6,*),RSLV(3),IELA(3,*),POSSO(3),POSSN(3),ICFCA(2,*)
+     &         ,ICFC(*),ICELA(2,*),ICEL(*),IBTE(4,*)
+C----&------------------------------------------------------------------
+      CALL FACERL(RL,POSSN,IELC(1,MASTER),POSN)
+C
+      IF( AREAIN(RL,1.D-3) .OR. ISTK == 1 ) THEN
+C
+        CALL FACESEPA(ISLV,FC,FTOL,MASTER,IELC(1,MASTER),POSN)
+C
+      ELSE
+C
+        CALL FACEOUT(ISLV,RSLV,POSSO,RL,IELC(1,MASTER),IEDG
+     &              ,IELA(1,MASTER),POSO,ITO)
+C
+        CALL FACEON(ISLV,RSLV,POSSN,MASTER,IELC,IEDG,ICELA,ICEL,IBTE
+     &             ,ICFCA,ICFC,POSN,TOL)
+C
+      ENDIF
+C
+      END

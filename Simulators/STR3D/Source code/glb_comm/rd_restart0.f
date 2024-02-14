@@ -1,0 +1,29 @@
+      SUBROUTINE RD_RESTART0(KK,IFL,FLNAME,NLEN)
+
+      USE M_VAL
+      USE MPI_PARAM
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      CHARACTER*256 FLNAME
+      DIMENSION KK(*)
+
+      OPEN(IFL,FILE=FLNAME(1:NLEN)//'.rsti000',FORM='UNFORMATTED')
+
+      CALL M_MPI_RECV_I(IRST,1,1)
+
+      DO
+
+        READ(IFL) ISTEP,NNOW
+
+        IF( KK(92) > 0 )
+     &    READ(IFL) ISLV0,ISLVP,RSLV0,U0,RL0,IFRIC,ISTK,FRIC
+
+        IF( ICPL == 2 ) THEN
+          IF( NNOW >= IRST ) EXIT
+        ELSE
+          IF( ISTEP == IRST ) EXIT
+        ENDIF
+
+      ENDDO
+
+      END

@@ -1,0 +1,76 @@
+      SUBROUTINE CLEEQ(EP,EPN,AK,HU,HV,HW,TMU,GS,GT,XC,YC,ZC,XCP,YCOS,
+     $                 GV,GX,GY,GZ,HH,HX,HDEP,INDP,INDU,INDV,INDW,
+     $               LLWALL,LLWALP,KF,KH,KG,KP,FU,FV,FW,EPBCN,SRCA,SRCB)
+C======================================================================
+C     輸送方程式を解き新しい時刻の乱流エネルー散逸を計算する
+C       FU: X方向熱流束,FV: Y方向熱流束,FW: Z方向熱流束
+C       EP: 新しい時刻のε(m**2/s**3),AKN:古い時刻のε(m**/s**3)
+C======================================================================
+      IMPLICIT NONE
+C
+      INCLUDE 'DOMAIN.h'
+      INCLUDE 'MODELI.h'
+      INCLUDE 'MODELR.h'
+      INCLUDE 'PROPTY.h'
+      INCLUDE 'TURBR.h'
+      INCLUDE 'CP_NESTBC.h'
+C
+      REAL(8),INTENT(INOUT)::EP(MX,MY,MZ),EPN(MX,MY,MZ),AK(MX,MY,MZ)
+      REAL(8),INTENT(INOUT)::HU(MX,MY,MZ),HV(MX,MY,MZ),HW(MX,MY,MZ)
+      REAL(8),INTENT(INOUT)::TMU(MX,MY,MZ),GS(MX,MY,MZ),GT(MX,MY,MZ)
+      REAL(8),INTENT(INOUT)::XC(8,MX,MY),YC(8,MY),ZC(8,MZ)
+      REAL(8),INTENT(IN)::XCP(8,MX,MY),YCOS(MY)
+      REAL(8),INTENT(INOUT)::GV(MX,MY,MZ),GX(MX,MY,MZ)
+      REAL(8),INTENT(INOUT)::GY(MX,MY,MZ),GZ(MX,MY,MZ)
+      REAL(8),INTENT(INOUT)::HH(MX,MY),HX(MX,MY),HDEP(MX,MY)
+      INTEGER,INTENT(INOUT)::INDP(MX,MY,MZ),INDU(MX,MY,MZ)
+      INTEGER,INTENT(INOUT)::INDV(MX,MY,MZ),INDW(MX,MY,MZ)
+      INTEGER,INTENT(INOUT)::LLWALL(8,MLWALL),LLWALP(8,MLWALP)
+      INTEGER,INTENT(INOUT)::KF(MX,MY),KG(MX,MY),KP(MX,MY),KH(MX,MY)
+      REAL(8),INTENT(INOUT)::FU(MX,MY,MZ),FV(MX,MY,MZ),FW(MX,MY,MZ)
+      REAL(8),INTENT(INOUT)::EPBCN(NXY,4,MZ)
+      REAL(8),INTENT(INOUT)::SRCA(MX,MY,MZ),SRCB(MX,MY,MZ)
+C
+      REAL(8)::EDK,GST,RF
+      INTEGER::NN=4,IZCAL=0
+      INTEGER::I,J,K,LL
+C
+      CALL CELLSC(EP,EPN,GV,XC,YC,ZC,HX,HDEP,INDP,KH,KG)
+C
+      CALL FLUXSX(FU,EP,HU,TMU,GX,HDEP,HX,XC,ZC,INDP,INDU,LLWALL,
+     $            KG,KP,KH,EPBCN,NN,ANUH,SGE,PARAMK)
+C
+      CALL FLUXSY(FV,EP,HV,TMU,GY,HDEP,HX,YC,ZC,INDP,INDV,LLWALL,
+     $            KG,KP,KH,EPBCN,NN,ANUH,SGE,PARAMK)
+C
+      CALL FLUXSZ(FW,EP,HW,TMU,GZ,ZC,INDP,INDW,LLWALL,
+     $            KG,KP,KH,NN,ANUV,SGE,PARAMK,IZCAL)
+C
+C ... 板境界処理は不要
+C
+CC      LL = 6+NN
+CC      CALL FLUXPL(FU,FV,FW,LLWALP,LL)
+C
+C ... 新しい時刻のEPを計算する
+C
+      CALL ZERCLR(SRCA,MXYZ,0.0D0)
+      CALL ZERCLR(SRCB,MXYZ,0.0D0)
+C
+      DO 100 K=2,MZM
+      DO 100 J=2,MYM
+      DO 100 I=2,MXM
+        EDK = 0.0D0
+        IF(AK(I,J,K).GT.0.0D0) EDK=EP(I,J,K)/AK(I,J,K)
+        GST = GS(I,J,K)+GT(I,J,K)
+        RF  = 0.0D0
+        IF(GST.GT.0.0) RF=-GT(I,J,K)/GST
+        SRCB(I,J,K)=EDK*(TC1*GST*(1.0D0+TC3*RF)-TC2*EP(I,J,K))
+  100 CONTINUE
+C
+      CALL CLSNEW(EP,EPN,FU,FV,FW,SRCA,SRCB,TMU,HH,
+     $            XC,YC,ZC,XCP,YCOS,GV,GZ,
+     $            INDP,INDU,INDV,KG,KP,KF,ANUV,SGE,0)
+      CALL CHKVAL(EP,HH,HDEP,KF,EPMIN)
+C
+      RETURN
+      END

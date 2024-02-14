@@ -1,0 +1,58 @@
+      SUBROUTINE EMASSPN2(EMASS,AMAT,GRID,KN,LUMP,ITO)
+C
+C     EMASS : OUT : 要素質量行列
+C     AMAT  : IN  : 物性テーブル
+C     GRID  : IN  : 節点座標
+C     KN    : IN  : 要素の構成節点番号
+C     LUMP  : IN  : =0:lumped mass, =1:consistent mass
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION AMAT(*),EMASS(15,15),H(15),P(3,15),RG(7),SG(7),TG(3)
+     &          ,X(3,15),GRID(3,*),KN(15),HTH(15,15),WGI(7),WGJ(3)
+C
+      DATA RG /
+     &  0.101286507323456D0, 0.797426985353087D0, 0.101286507323456D0,
+     &  0.470142064105115D0, 0.470142064105115D0, 0.059715871789770D0,
+     &  0.333333333333333D0 /
+      DATA SG /
+     &  0.101286507323456D0, 0.101286507323456D0, 0.797426985353087D0,
+     &  0.059715871789770D0, 0.470142064105115D0, 0.470142064105115D0,
+     &  0.333333333333333D0 /
+      DATA TG / -.774596669241483D0, 0.0D0, .774596669241483D0 /
+C
+      DATA WGI / 3*0.062969590272414D0, 3*0.066197076394253D0, 0.1125D0/
+      DATA WGJ / 0.55555555555555556D0, 0.88888888888888889D0
+     &         , 0.55555555555555556D0 /
+C
+      X(:,:) = GRID(:,KN(:))
+C
+      RHO = AMAT(3)
+C
+      EMASS(:,:) = 0.
+      VOL = 0.
+C
+      DO JG = 1, 3
+        DO IG = 1, 7
+C
+          CALL SFNPN2(H,15,RG(IG),SG(IG),TG(JG))
+C
+          CALL DERPN2(P,15,RG(IG),SG(IG),TG(JG))
+          CALL DET3(DET,15,P,X,ITO)
+C
+          IF( LUMP == 0 ) THEN
+            VOL = VOL + DET*WGI(IG)*WGJ(JG)
+            EMASS(:,1) = EMASS(:,1) + H(:)*H(:)*DET*WGI(IG)*WGJ(JG)
+          ELSE
+            CALL AXB(HTH,H,H,15,1,15)
+            EMASS(:,:) = EMASS(:,:) + HTH(:,:)*RHO*DET*WGI(IG)*WGJ(JG)
+          ENDIF
+C
+        ENDDO
+      ENDDO
+C
+      IF( LUMP == 0 ) THEN
+        CALL SUMVEC(EMASST,EMASS,15)
+        EMASS(:,1) = EMASS(:,1) * RHO * VOL / EMASST
+      ENDIF
+C
+      END

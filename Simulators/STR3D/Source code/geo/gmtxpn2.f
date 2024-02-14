@@ -1,0 +1,65 @@
+      SUBROUTINE GMTXPN2(EKUP,EKPP,ECPU,ECPP,EMPU,ND,ND3,X,ITO)
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION NI(2),NJ(2),RG(7,2),SG(7,2),TG(3,2),WGI(7,2),WGJ(3,2)
+     &         ,EKUP(ND3,ND),EKPP(ND,ND),ECPU(ND,ND3),ECPP(ND,ND)
+     &         ,EMPU(ND,ND3),RN(ND),X(3,ND),DNDX(3,ND),RKUP(ND3,ND)
+     &         ,RKPP(ND,ND),CPU(ND,ND3),CPP(ND,ND),RMPU(ND,ND3)
+
+      DATA NI / 3, 7 /
+      DATA NJ / 2, 3 /
+
+      DATA RG / .5D0, .5D0, 0.D0, 4*0.D0,
+     &  0.101286507323456D0, 0.797426985353087D0, 0.101286507323456D0,
+     &  0.470142064105115D0, 0.470142064105115D0, 0.059715871789770D0,
+     &  0.333333333333333D0 /
+      DATA SG / 0.D0, .5D0, .5D0, 4*0.D0,
+     &  0.101286507323456D0, 0.101286507323456D0, 0.797426985353087D0,
+     &  0.059715871789770D0, 0.470142064105115D0, 0.470142064105115D0,
+     &  0.333333333333333D0 /
+      DATA TG / -.577350269189626D0, .577350269189626D0, 0.D0,
+     &  -.774596669241483D0, 0.0D0, .774596669241483D0 /
+
+      DATA WGI / 3*0.166666666666667D0, 4*0.D0,
+     &  3*0.062969590272414D0, 3*0.066197076394253D0, 0.1125D0 /
+      DATA WGJ / 2*1.D0, 0.D0,
+     &  0.55555555555555556D0, 0.88888888888888889D0,
+     &  0.55555555555555556D0 /
+
+      IF( ND == 6 ) THEN
+        ID = 1
+      ELSE
+        ID = 2
+      ENDIF
+
+      EKUP(:,:) = 0.
+      EKPP(:,:) = 0.
+      ECPU(:,:) = 0.
+      ECPP(:,:) = 0.
+      EMPU(:,:) = 0.
+
+      DO J = 1, NJ(ID)
+        DO I = 1, NI(ID)
+
+          R = RG(I,ID)
+          S = SG(I,ID)
+          T = TG(J,ID)
+
+          WGT = WGI(I,ID)*WGJ(J,ID)
+
+          CALL SFNPN2(RN,ND,R,S,T)
+
+          CALL DERXPN2(DNDX,DET,ND,X,R,S,T,ITO)
+
+          CALL GMTX(RKUP,RKPP,CPU,CPP,RMPU,RN,DNDX,ND,ND3)
+
+          EKUP(:,:) = EKUP(:,:) + RKUP(:,:)*WGT*DET
+          EKPP(:,:) = EKPP(:,:) + RKPP(:,:)*WGT*DET
+          ECPU(:,:) = ECPU(:,:) + CPU(:,:)*WGT*DET
+          ECPP(:,:) = ECPP(:,:) + CPP(:,:)*WGT*DET
+          EMPU(:,:) = EMPU(:,:) + RMPU(:,:)*WGT*DET
+
+        ENDDO
+      ENDDO
+
+      END

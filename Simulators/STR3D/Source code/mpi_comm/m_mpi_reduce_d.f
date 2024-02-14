@@ -1,0 +1,23 @@
+      SUBROUTINE M_MPI_REDUCE_D(DSEND,DRECV,N,IOP)
+
+      USE MPI_PARAM
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      INCLUDE 'mpif.h'
+
+      DIMENSION DSEND(N),DRECV(N)
+
+      SELECT CASE( IOP )
+      CASE( 0 )
+        MPI_OP = MPI_SUM
+      CASE( 1 )
+        MPI_OP = MPI_MAX
+      CASE( 2 )
+        MPI_OP = MPI_MIN
+      END SELECT
+
+      CALL MPI_REDUCE(DSEND,DRECV,N,MPI_DOUBLE_PRECISION,MPI_OP,0
+     &               ,MYWORLD,IERR)
+
+      END

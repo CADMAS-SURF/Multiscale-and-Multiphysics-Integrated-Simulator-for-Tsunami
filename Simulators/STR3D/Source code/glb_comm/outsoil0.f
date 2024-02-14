@@ -1,0 +1,18 @@
+      SUBROUTINE OUTSOIL0(NNOD,IFL)
+
+      USE M_VAL
+
+      REAL(8),POINTER :: VELP(:,:)
+
+      ALLOCATE( VELP(3,NNOD) )
+
+      CALL GATHER_NODAL_D(VELP,3)
+
+      IPS = NP_ENS(2) + NP_ENS(3) + NP_ENS(4) + 1
+      IPE = NP_ENS(2) + NP_ENS(3) + NP_ENS(4) + NP_ENS(6)
+
+      CALL WTSOIL(VELP,NNOD,IPS,IPE,NG_ENS,IG_ENS,IFL)
+
+      DEALLOCATE( VELP )
+
+      END

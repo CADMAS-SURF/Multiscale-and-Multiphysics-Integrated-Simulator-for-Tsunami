@@ -1,0 +1,14 @@
+      SUBROUTINE CG_MPI_IRECV_I(IRECV,N,ISRC,IREQ)
+
+      USE MPI_PARAM
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      INCLUDE 'mpif.h'
+
+      DIMENSION IRECV(N)
+
+      CALL MPI_IRECV(IRECV,N,MPI_INTEGER,ISRC,0,CGWORLD,IREQ
+     &              ,IERR)
+
+      END

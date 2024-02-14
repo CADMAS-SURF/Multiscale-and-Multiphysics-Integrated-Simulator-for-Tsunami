@@ -1,0 +1,16 @@
+      SUBROUTINE INPUT( KK, RR, ICK, ITI, ITO )
+C
+      IMPLICIT REAL*8 (A-H,O-Z)
+      DIMENSION KK(*), RR(*)
+C
+      CALL COUNT_DATA( ITI )
+C
+      REWIND(ITI)
+C
+      CALL READ_DATA( KK, RR, ITI, ITO )
+C
+      CALL SET_TABLE( KK, ITO )
+C
+      IF( ICK == 1 ) CALL DATA_CHECK( KK, RR )
+C
+      END

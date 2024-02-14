@@ -1,0 +1,799 @@
+      SUBROUTINE CP_SNDML2NS(KF_ML,KG_ML,IBUF,
+     1                       UU_ML,VV_ML,WW_ML,TT_ML,CC_ML,X1_ML,X2_ML,
+     $                       HH_ML,HDEP_ML,CSD_ML,ZBD_ML,BUF,
+     2                       MX_ML,MY_ML,MZ_ML,
+     3                       IEAS,IWES,JSOU,JNOR,KBOT,KTOP,
+     4                       NESXM,NESXP,NESYM,NESYP,IFL)
+C-----------------------------------------------------------------------
+C     RFILE(3).LE.0.0 : MLの境界値(流速,潮位)をNSに転送する
+C     RFILE(3).GT.0.0 : MLの境界値(流速,潮位)をファイルに出力する
+C       IFL=0 : 初期値,KG,HDEP
+C       IFL=1 : U(N+1),V(N+1),W(N),T(N),C(N)
+C       IFL=2 : H(N+1/2),KF(N+1/2)
+C
+C       LTURB=3 : X1=Q2,X2=QL
+C       LTURB=4 : X1=AK
+C-----------------------------------------------------------------------
+C
+      use mod_comm,only: comm_model
+      IMPLICIT NONE
+C
+      INCLUDE  'MODELI.h'
+      INCLUDE  'CP_NESTBC.h'
+      INCLUDE  'CONNEC.h'
+      INCLUDE  'FILE.h'
+      INCLUDE  'OUTPUT.h'
+      INCLUDE  'TIMER.h'
+      INCLUDE  'mpif.h'
+C
+      INTEGER,INTENT(INOUT)::MX_ML,MY_ML,MZ_ML
+      INTEGER,INTENT(INOUT)::IEAS,IWES,JSOU,JNOR,KBOT,KTOP
+      INTEGER,INTENT(INOUT)::NESXM,NESXP,NESYM,NESYP
+      INTEGER,INTENT(INOUT)::IFL
+C
+      INTEGER,INTENT(INOUT)::KF_ML(MX_ML,MY_ML)
+      INTEGER,INTENT(INOUT)::KG_ML(MX_ML,MY_ML)
+      INTEGER,INTENT(INOUT)::IBUF(*)
+C
+      REAL(8),INTENT(INOUT)::UU_ML(MX_ML,MY_ML,MZ_ML)
+      REAL(8),INTENT(INOUT)::VV_ML(MX_ML,MY_ML,MZ_ML)
+      REAL(8),INTENT(INOUT)::WW_ML(MX_ML,MY_ML,MZ_ML)
+      REAL(8),INTENT(INOUT)::TT_ML(MX_ML,MY_ML,MZ_ML)
+      REAL(8),INTENT(INOUT)::CC_ML(MX_ML,MY_ML,MZ_ML)
+      REAL(8),INTENT(INOUT)::CSD_ML(MX_ML,MY_ML,MZ_ML)
+      REAL(8),INTENT(INOUT)::ZBD_ML(MX_ML,MY_ML)
+      REAL(8),INTENT(INOUT)::X1_ML(MX_ML,MY_ML,MZ_ML)
+      REAL(8),INTENT(INOUT)::X2_ML(MX_ML,MY_ML,MZ_ML)
+      REAL(8),INTENT(INOUT)::HH_ML(MX_ML,MY_ML)
+      REAL(8),INTENT(INOUT)::HDEP_ML(MX_ML,MY_ML)
+      REAL(8),INTENT(INOUT)::BUF(*)
+C
+      INTEGER::ISTAT(MPI_STATUS_SIZE)
+C
+      INTEGER::I,ICHILN,IERROR,IREQ,ITAG,J,K,NCOUNT
+      INTEGER::N,NE,NS,NFOUT
+C
+      NS=NUMPE(2,NRANK+1)
+      NE=NUMPE(1,NRANK+1)+NS-1
+C
+      ITAG=0
+      NFOUT=0
+      IF(RFILE(3).GT.0.0D0.AND.TIME.GE.RFILE(1)-0.1*DT) THEN 
+        NFOUT=1
+      END IF     
+C
+C ...... 境界流速を送信する
+      IF(IFL.EQ.0.OR.IFL.EQ.1) THEN
+C
+C ... 子にUU_MLを送信する。
+C
+C
+         NCOUNT=0
+         DO 100 K=KBOT-1,KTOP+1
+         DO 100 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=UU_ML(IWES-1,J,K)
+  100    CONTINUE
+C
+         DO 110 K=KBOT-1,KTOP+1
+         DO 110 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=UU_ML(IEAS,J,K)
+  110    CONTINUE
+C
+         DO 120 K=KBOT-1,KTOP+1
+         DO 120 I=IWES,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=UU_ML(I,JSOU-1,K)
+  120    CONTINUE
+C
+         DO 130 K=KBOT-1,KTOP+1
+         DO 130 I=IWES,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=UU_ML(I,JSOU,K)
+  130    CONTINUE
+C
+         DO 140 K=KBOT-1,KTOP+1
+         DO 140 I=IWES,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=UU_ML(I,JNOR,K)
+  140    CONTINUE
+C
+         DO 150 K=KBOT-1,KTOP+1
+         DO 150 I=IWES,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=UU_ML(I,JNOR+1,K)
+  150    CONTINUE
+C
+         DO 160 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+  160    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+cccccc
+ccc      write(6,*) 'S UU_ML,TIME=',TIME
+         END IF
+C
+C ... 子にVV_MLを送信する。
+C
+C
+         NCOUNT=0
+         DO 200 K=KBOT-1,KTOP+1
+         DO 200 J=JSOU,JNOR-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=VV_ML(IWES-1,J,K)
+  200    CONTINUE
+C
+         DO 210 K=KBOT-1,KTOP+1
+         DO 210 J=JSOU,JNOR-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=VV_ML(IWES,J,K)
+  210    CONTINUE
+C
+         DO 220 K=KBOT-1,KTOP+1
+         DO 220 J=JSOU,JNOR-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=VV_ML(IEAS,J,K)
+  220    CONTINUE
+C
+         DO 230 K=KBOT-1,KTOP+1
+         DO 230 J=JSOU,JNOR-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=VV_ML(IEAS+1,J,K)
+  230    CONTINUE
+C
+         DO 240 K=KBOT-1,KTOP+1
+         DO 240 I=IWES-1,IEAS+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=VV_ML(I,JSOU-1,K)
+  240    CONTINUE
+C
+         DO 250 K=KBOT-1,KTOP+1
+         DO 250 I=IWES-1,IEAS+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=VV_ML(I,JNOR,K)
+  250    CONTINUE
+C
+         DO 260 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+  260    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+cccccc
+ccc      write(6,*) 'S VV_ML,TIME=',TIME
+         END IF
+C
+C ... 子にWW_MLを送信する。
+C
+C
+         NCOUNT=0
+         DO 300 K=KBOT-1,KTOP+1
+         DO 300 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=WW_ML(IWES-1,J,K)
+  300    CONTINUE
+C
+         DO 310 K=KBOT-1,KTOP+1
+         DO 310 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=WW_ML(IWES,J,K)
+  310    CONTINUE
+C
+         DO 320 K=KBOT-1,KTOP+1
+         DO 320 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=WW_ML(IEAS,J,K)
+  320    CONTINUE
+C
+         DO 330 K=KBOT-1,KTOP+1
+         DO 330 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=WW_ML(IEAS+1,J,K)
+  330    CONTINUE
+C
+         DO 340 K=KBOT-1,KTOP+1
+         DO 340 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=WW_ML(I,JSOU-1,K)
+  340    CONTINUE
+C
+         DO 350 K=KBOT-1,KTOP+1
+         DO 350 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=WW_ML(I,JSOU,K)
+  350    CONTINUE
+C
+         DO 360 K=KBOT-1,KTOP+1
+         DO 360 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=WW_ML(I,JNOR,K)
+  360    CONTINUE
+C
+         DO 370 K=KBOT-1,KTOP+1
+         DO 370 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=WW_ML(I,JNOR+1,K)
+  370    CONTINUE
+C
+         DO 380 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+  380    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+cccccc
+ccc      write(6,*) 'S WW_ML,TIME=',TIME
+         END IF
+C
+        IF(LTEMP.EQ.1) THEN
+C ... 子にTT_MLを送信する。
+C
+C
+         NCOUNT=0
+         DO 800 K=KBOT-1,KTOP+1
+         DO 800 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=TT_ML(IWES-1,J,K)
+  800    CONTINUE
+C
+         DO 810 K=KBOT-1,KTOP+1
+         DO 810 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=TT_ML(IWES,J,K)
+  810    CONTINUE
+C
+         DO 820 K=KBOT-1,KTOP+1
+         DO 820 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=TT_ML(IEAS,J,K)
+  820    CONTINUE
+C
+         DO 830 K=KBOT-1,KTOP+1
+         DO 830 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=TT_ML(IEAS+1,J,K)
+  830    CONTINUE
+C
+         DO 840 K=KBOT-1,KTOP+1
+         DO 840 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=TT_ML(I,JSOU-1,K)
+  840    CONTINUE
+C
+         DO 850 K=KBOT-1,KTOP+1
+         DO 850 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=TT_ML(I,JSOU,K)
+  850    CONTINUE
+C
+         DO 860 K=KBOT-1,KTOP+1
+         DO 860 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=TT_ML(I,JNOR,K)
+  860    CONTINUE
+C
+         DO 870 K=KBOT-1,KTOP+1
+         DO 870 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=TT_ML(I,JNOR+1,K)
+  870    CONTINUE
+C
+         DO 880 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+  880    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+         END IF
+C
+        END IF
+C
+        IF(LCONC.EQ.1) THEN
+C ... 子にCC_MLを送信する。
+C
+C
+         NCOUNT=0
+         DO 900 K=KBOT-1,KTOP+1
+         DO 900 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CC_ML(IWES-1,J,K)
+  900    CONTINUE
+C
+         DO 910 K=KBOT-1,KTOP+1
+         DO 910 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CC_ML(IWES,J,K)
+  910    CONTINUE
+C
+         DO 920 K=KBOT-1,KTOP+1
+         DO 920 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CC_ML(IEAS,J,K)
+  920    CONTINUE
+C
+         DO 930 K=KBOT-1,KTOP+1
+         DO 930 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CC_ML(IEAS+1,J,K)
+  930    CONTINUE
+C
+         DO 940 K=KBOT-1,KTOP+1
+         DO 940 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CC_ML(I,JSOU-1,K)
+  940    CONTINUE
+C
+         DO 950 K=KBOT-1,KTOP+1
+         DO 950 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CC_ML(I,JSOU,K)
+  950    CONTINUE
+C
+         DO 960 K=KBOT-1,KTOP+1
+         DO 960 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CC_ML(I,JNOR,K)
+  960    CONTINUE
+C
+         DO 970 K=KBOT-1,KTOP+1
+         DO 970 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CC_ML(I,JNOR+1,K)
+  970    CONTINUE
+C
+         DO 980 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+  980    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+         END IF
+C
+        END IF
+C
+        IF(LTURB.GE.3) THEN
+C ... 子にX1_MLを送信する。
+C
+C
+         NCOUNT=0
+         DO 1000 K=KBOT-1,KTOP+1
+         DO 1000 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X1_ML(IWES-1,J,K)
+ 1000    CONTINUE
+C
+         DO 1010 K=KBOT-1,KTOP+1
+         DO 1010 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X1_ML(IWES,J,K)
+ 1010    CONTINUE
+C
+         DO 1020 K=KBOT-1,KTOP+1
+         DO 1020 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X1_ML(IEAS,J,K)
+ 1020    CONTINUE
+C
+         DO 1030 K=KBOT-1,KTOP+1
+         DO 1030 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X1_ML(IEAS+1,J,K)
+ 1030    CONTINUE
+C
+         DO 1040 K=KBOT-1,KTOP+1
+         DO 1040 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X1_ML(I,JSOU-1,K)
+ 1040    CONTINUE
+C
+         DO 1050 K=KBOT-1,KTOP+1
+         DO 1050 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X1_ML(I,JSOU,K)
+ 1050    CONTINUE
+C
+         DO 1060 K=KBOT-1,KTOP+1
+         DO 1060 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X1_ML(I,JNOR,K)
+ 1060    CONTINUE
+C
+         DO 1070 K=KBOT-1,KTOP+1
+         DO 1070 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X1_ML(I,JNOR+1,K)
+ 1070    CONTINUE
+C
+         DO 1080 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+ 1080    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+         END IF
+C
+        END IF
+C
+        IF(LTURB.EQ.3) THEN
+C ..... 子にX2_MLを送信する。
+C
+         NCOUNT=0
+         DO 1100 K=KBOT-1,KTOP+1
+         DO 1100 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X2_ML(IWES-1,J,K)
+ 1100    CONTINUE
+C
+         DO 1110 K=KBOT-1,KTOP+1
+         DO 1110 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X2_ML(IWES,J,K)
+ 1110    CONTINUE
+C
+         DO 1120 K=KBOT-1,KTOP+1
+         DO 1120 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X2_ML(IEAS,J,K)
+ 1120    CONTINUE
+C
+         DO 1130 K=KBOT-1,KTOP+1
+         DO 1130 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X2_ML(IEAS+1,J,K)
+ 1130    CONTINUE
+C
+         DO 1140 K=KBOT-1,KTOP+1
+         DO 1140 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X2_ML(I,JSOU-1,K)
+ 1140    CONTINUE
+C
+         DO 1150 K=KBOT-1,KTOP+1
+         DO 1150 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X2_ML(I,JSOU,K)
+ 1150    CONTINUE
+C
+         DO 1160 K=KBOT-1,KTOP+1
+         DO 1160 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X2_ML(I,JNOR,K)
+ 1160    CONTINUE
+C
+         DO 1170 K=KBOT-1,KTOP+1
+         DO 1170 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=X2_ML(I,JNOR+1,K)
+ 1170    CONTINUE
+C
+         DO 1180 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+ 1180    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+         END IF
+C
+        END IF
+C
+        IF(LSEDI.EQ.1) THEN
+C ... 子にCSD_MLを送信する。
+C
+         NCOUNT=0
+         DO 1200 K=KBOT-1,KTOP+1
+         DO 1200 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CSD_ML(IWES-1,J,K)
+ 1200    CONTINUE
+C
+         DO 1210 K=KBOT-1,KTOP+1
+         DO 1210 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CSD_ML(IWES,J,K)
+ 1210    CONTINUE
+C
+         DO 1220 K=KBOT-1,KTOP+1
+         DO 1220 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CSD_ML(IEAS,J,K)
+ 1220    CONTINUE
+C
+         DO 1230 K=KBOT-1,KTOP+1
+         DO 1230 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CSD_ML(IEAS+1,J,K)
+ 1230    CONTINUE
+C
+         DO 1240 K=KBOT-1,KTOP+1
+         DO 1240 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CSD_ML(I,JSOU-1,K)
+ 1240    CONTINUE
+C
+         DO 1250 K=KBOT-1,KTOP+1
+         DO 1250 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CSD_ML(I,JSOU,K)
+ 1250    CONTINUE
+C
+         DO 1260 K=KBOT-1,KTOP+1
+         DO 1260 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CSD_ML(I,JNOR,K)
+ 1260    CONTINUE
+C
+         DO 1270 K=KBOT-1,KTOP+1
+         DO 1270 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=CSD_ML(I,JNOR+1,K)
+ 1270    CONTINUE
+C
+         DO 1280 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+ 1280    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+         END IF
+C
+C ... 子にZBD_MLを送信する。
+C
+         NCOUNT=0
+         DO 1300 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=ZBD_ML(IWES-1,J)
+ 1300    CONTINUE
+C
+         DO 1310 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=ZBD_ML(IWES,J)
+ 1310    CONTINUE
+C
+         DO 1320 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=ZBD_ML(IEAS,J)
+ 1320    CONTINUE
+C
+         DO 1330 J=JSOU-1,JNOR+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=ZBD_ML(IEAS+1,J)
+ 1330    CONTINUE
+C
+         DO 1340 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=ZBD_ML(I,JSOU-1)
+ 1340    CONTINUE
+C
+         DO 1350 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=ZBD_ML(I,JSOU)
+ 1350    CONTINUE
+C
+         DO 1360 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=ZBD_ML(I,JNOR)
+ 1360    CONTINUE
+C
+         DO 1370 I=IWES+1,IEAS-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=ZBD_ML(I,JNOR+1)
+ 1370    CONTINUE
+C
+         DO 1380 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+ 1380    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+         END IF
+C
+        END IF
+C
+      END IF
+C
+C ...... 水位関連データを送信する
+      IF(IFL.EQ.0.OR.IFL.EQ.2) THEN
+C
+C ... 子にHH_MLを送信する。
+C
+C
+         NCOUNT=0
+         DO 400 J=JSOU-1,JNOR+1
+         DO 400 I=IWES-1,IWES+NESXM
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=HH_ML(I,J)
+  400    CONTINUE
+C
+         DO 410 J=JSOU-1,JNOR+1
+         DO 410 I=IEAS-NESXP,IEAS+1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=HH_ML(I,J)
+  410    CONTINUE
+C
+         DO 420 J=JSOU-1,JSOU+NESYM
+         DO 420 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=HH_ML(I,J)
+  420    CONTINUE
+C
+         DO 430 J=JNOR-NESYP,JNOR+1
+         DO 430 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         BUF(NCOUNT)=HH_ML(I,J)
+  430    CONTINUE
+C
+         DO 440 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+  440    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+cccccc
+ccc      write(6,*) 'S HH_ML,TIME=',TIME
+         END IF
+C
+C ... 子にKGを送信する。
+C        (最初のみ）
+         IF(IFL.EQ.0) THEN
+C
+C
+         NCOUNT=0
+         DO 500 J=JSOU-1,JNOR+1
+         DO 500 I=IWES-1,IWES+NESXM
+         NCOUNT=NCOUNT+1
+         IBUF(NCOUNT)=KG_ML(I,J)
+  500    CONTINUE
+C
+         DO 510 J=JSOU-1,JNOR+1
+         DO 510 I=IEAS-NESXP,IEAS+1
+         NCOUNT=NCOUNT+1
+         IBUF(NCOUNT)=KG_ML(I,J)
+  510    CONTINUE
+C
+         DO 520 J=JSOU-1,JSOU+NESYM
+         DO 520 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         IBUF(NCOUNT)=KG_ML(I,J)
+  520    CONTINUE
+C
+         DO 530 J=JNOR-NESYP,JNOR+1
+         DO 530 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         IBUF(NCOUNT)=KG_ML(I,J)
+  530    CONTINUE
+C
+         DO 540 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(IBUF,NCOUNT,MPI_INTEGER,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+  540    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0) THEN
+           WRITE(IFLBO) TIME,(IBUF(N),N=1,NCOUNT)
+cccccc
+ccc      write(6,*) 'S KG_ML,TIME=',TIME
+         END IF
+C
+         END IF
+C
+C ... 子にKFを送信する。
+C
+C
+         NCOUNT=0
+         DO 600 J=JSOU-1,JNOR+1
+         DO 600 I=IWES-1,IWES+NESXM
+         NCOUNT=NCOUNT+1
+         IBUF(NCOUNT)=KF_ML(I,J)
+  600    CONTINUE
+C
+         DO 610 J=JSOU-1,JNOR+1
+         DO 610 I=IEAS-NESXP,IEAS+1
+         NCOUNT=NCOUNT+1
+         IBUF(NCOUNT)=KF_ML(I,J)
+  610    CONTINUE
+C
+         DO 620 J=JSOU-1,JSOU+NESYM
+         DO 620 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         IBUF(NCOUNT)=KF_ML(I,J)
+  620    CONTINUE
+C
+         DO 630 J=JNOR-NESYP,JNOR+1
+         DO 630 I=IWES+NESXM+1,IEAS-NESXP-1
+         NCOUNT=NCOUNT+1
+         IBUF(NCOUNT)=KF_ML(I,J)
+  630    CONTINUE
+C
+         DO 640 N=NS,NE
+         ICHILN=NUMCOM(1,N)
+         CALL MPI_ISEND(IBUF,NCOUNT,MPI_INTEGER,ICHILN,
+     *                  ITAG,comm_model,IREQ,IERROR)
+         CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+  640    CONTINUE
+C
+         IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+           WRITE(IFLBO) TIME,(IBUF(N),N=1,NCOUNT)
+cccccc
+ccc      write(6,*) 'S KF_ML,TIME=',TIME
+         END IF
+C
+      END IF
+C
+      IF(IFL.NE.0) RETURN
+C
+C ... 子にHDEP_MLを送信する。
+C
+C
+      NCOUNT=0
+      DO 700 J=JSOU-1,JNOR+1
+      DO 700 I=IWES-1,IWES+NESXM
+      NCOUNT=NCOUNT+1
+      BUF(NCOUNT)=HDEP_ML(I,J)
+  700 CONTINUE
+C
+      DO 710 J=JSOU-1,JNOR+1
+      DO 710 I=IEAS-NESXP,IEAS+1
+      NCOUNT=NCOUNT+1
+      BUF(NCOUNT)=HDEP_ML(I,J)
+  710 CONTINUE
+C
+      DO 720 J=JSOU-1,JSOU+NESYM
+      DO 720 I=IWES+NESXM+1,IEAS-NESXP-1
+      NCOUNT=NCOUNT+1
+      BUF(NCOUNT)=HDEP_ML(I,J)
+  720 CONTINUE
+C
+      DO 730 J=JNOR-NESYP,JNOR+1
+      DO 730 I=IWES+NESXM+1,IEAS-NESXP-1
+      NCOUNT=NCOUNT+1
+      BUF(NCOUNT)=HDEP_ML(I,J)
+  730 CONTINUE
+C
+      DO 740 N=NS,NE
+      ICHILN=NUMCOM(1,N)
+      CALL MPI_ISEND(BUF,NCOUNT,MPI_DOUBLE_PRECISION,ICHILN,
+     *               ITAG,comm_model,IREQ,IERROR)
+      CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+  740 CONTINUE
+C
+      IF(RFILE(3).GT.0.0D0.AND.(IFL.EQ.0.OR.NFOUT.NE.0)) THEN
+        WRITE(IFLBO) TIME,(BUF(N),N=1,NCOUNT)
+cccccc
+ccc      write(6,*) 'S HDEP_ML,TIME=',TIME
+      END IF
+C
+      RETURN
+      END

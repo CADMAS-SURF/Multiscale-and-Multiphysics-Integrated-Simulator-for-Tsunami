@@ -1,0 +1,13 @@
+      SUBROUTINE RD_SHELL( J_SHEL, N, CHAR, ITI )
+C
+      CHARACTER*80 CHAR
+      DIMENSION J_SHEL(10)
+C
+      IF( N <= 6 ) THEN
+        READ(CHAR,'(BN,8X,8I8)') J_SHEL(1:2+N)
+      ELSE
+        READ(CHAR,'(BN,8X,8I8)') J_SHEL(1:8)
+        READ(ITI,'(BN,8X,2I8)') J_SHEL(9:10)
+      ENDIF
+C
+      END

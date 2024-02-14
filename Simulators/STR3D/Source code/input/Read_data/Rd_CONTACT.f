@@ -1,0 +1,11 @@
+      SUBROUTINE RD_CONTACT( RR, CHAR )
+C
+      IMPLICIT REAL*8 (A-H,O-Z)
+      CHARACTER*80 CHAR
+      DIMENSION RR(*)
+C
+      IF( CHAR(9:12) == 'TOLA' ) THEN
+        READ(CHAR(14:),*) RR(13)
+      ENDIF
+C
+      END

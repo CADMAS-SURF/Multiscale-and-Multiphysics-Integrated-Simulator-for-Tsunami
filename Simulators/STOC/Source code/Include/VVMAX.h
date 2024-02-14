@@ -1,0 +1,2 @@
+      REAL(8):: VVMAX
+      COMMON /VVMAX0/ VVMAX

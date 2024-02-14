@@ -1,0 +1,44 @@
+      SUBROUTINE COMM_INTX(IX,NDF)
+
+      USE M_PART
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      DIMENSION IX(NDF,*)
+
+      INTEGER, POINTER :: IWS(:,:),IWR(:,:)
+      INTEGER, POINTER :: IREQ1(:),IREQ2(:)
+
+      ALLOCATE( IWS(NDF,NEXPX) )
+      ALLOCATE( IWR(NDF,NIMPX) )
+      ALLOCATE( IREQ1(NPEXPX) )
+      ALLOCATE( IREQ2(NPIMPX) )
+
+      IWS(:,:) = IX(:,NODEXPX(:))
+
+      DO IP = 1, NPEXPX
+        IS = IDXEXPX(1,IP)
+        IE = IDXEXPX(2,IP)
+        NS = NDF * ( IE - IS + 1 )
+        CALL CG_MPI_ISEND_I(IWS(1,IS),NS,IPEXPX(IP)-1,IREQ1(IP))
+      ENDDO
+
+      DO IP = 1, NPIMPX
+        IS = IDXIMPX(1,IP)
+        IE = IDXIMPX(2,IP)
+        NR = NDF * ( IE - IS + 1 )
+        CALL CG_MPI_IRECV_I(IWR(1,IS),NR,IPIMPX(IP)-1,IREQ2(IP))
+      ENDDO
+
+      CALL C_MPI_WAITALL(NPEXPX,IREQ1)
+
+      CALL C_MPI_WAITALL(NPIMPX,IREQ2)
+
+      IX(:,NODIMPX(:)) = IWR(:,:)
+
+      DEALLOCATE( IWS )
+      DEALLOCATE( IWR )
+      DEALLOCATE( IREQ1 )
+      DEALLOCATE( IREQ2 )
+
+      END

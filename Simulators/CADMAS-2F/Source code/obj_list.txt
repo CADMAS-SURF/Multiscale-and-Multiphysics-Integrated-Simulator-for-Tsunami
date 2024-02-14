@@ -1,0 +1,36 @@
+OBJS = sf_addset.o              sf_adjoin.o              \
+       sf_alloc0.o              sf_alloc1.o              sf_axb.o                 sf_axbt.o                \
+       sf_bcast_d.o             sf_bcast_i.o             sf_bcs_obst.o            sf_bc_reset.o            \
+       sf_bnd_gelem.o           sf_cent_elem.o           sf_cinit.o               sf_col3.o                \
+       sf_col4.o                sf_coltr.o               sf_comm_d_2.o            sf_comm_init.o           \
+       sf_comm_i_1.o            sf_comm_i_2.o            sf_cross1.o              sf_cross2.o              \
+       sf_cscrib.o              sf_cut2.o                sf_cut2tr.o              sf_cut2x.o               \
+       sf_cut3.o                sf_cut3x.o               sf_c_mpi_allreduce_i.o   sf_c_mpi_barrier.o       \
+       sf_c_mpi_comm_rank.o     sf_c_mpi_comm_size.o     sf_c_mpi_recv_d.o        sf_c_mpi_recv_i.o        \
+       sf_c_mpi_send_d.o        sf_c_mpi_send_i.o        sf_dcopy.o               sf_dealloc.o             \
+       sf_dircos.o              sf_dpth_init.o           sf_dpth_update.o         sf_elem_range.o          \
+       sf_elem_skip.o           sf_ens_geom.o            sf_ens_out.o             sf_fill.o                \
+       sf_gdpth.o               sf_gipnd.o               sf_gpres.o               sf_grdl.o                \
+       sf_gsfhx.o               sf_gsfpn.o               sf_hqu1.o                sf_icopy.o               \
+       sf_ij.o                  sf_ijk.o                 sf_indx_reset.o          sf_intpl_dpth.o          \
+       sf_length.o              sf_mdfxyz.o              sf_mdlndh.o              sf_mdporo.o              \
+       sf_mdporo_h.o            sf_mean1.o               sf_mean4.o               sf_mktehx.o              \
+       sf_mktepn.o              sf_mpi_allreduce_d.o     sf_mpi_allreduce_i.o     sf_mpi_irecv_d.o         \
+       sf_mpi_irecv_i.o         sf_mpi_isend_d.o         sf_mpi_isend_i.o         sf_mpi_recv_d.o          \
+       sf_mpi_recv_i.o          sf_mpi_reduce_d.o        sf_mpi_reduce_i.o        sf_mpi_send_d.o          \
+       sf_mpi_send_i.o          sf_mpi_waitall.o         sf_nf_reset.o            sf_nrmvec.o              \
+       sf_obst_por.o            sf_pface0.o              sf_pface1.o              sf_pface2.o              \
+       sf_pface3.o              sf_pfc_skip.o            sf_pmgbc0.o              sf_pos_init.o            \
+       sf_pos_update1.o         sf_pos_update2.o         sf_pos_updt.o            sf_prsini.o              \
+       sf_prstrn.o              sf_rd_obst.o             sf_rd_restart.o          sf_realloc.o             \
+       sf_recv_cont.o           sf_reduce_d.o            sf_reduce_i.o            sf_remv.o                \
+       sf_reset_ff.o            sf_reset_uu.o            sf_rface0.o              sf_rface2.o              \
+       sf_rint.o                sf_s34.o                 sf_send_rst.o            sf_send_surf.o           \
+       sf_stm0.o                sf_stm1.o                sf_stm2.o                sf_stm3.o                \
+       sf_stm_comm_init.o       sf_stm_c_mpi_comm_rank.o sf_stm_c_mpi_comm_size.o sf_stm_c_mpi_recv_d.o    \
+       sf_stm_c_mpi_recv_i.o    sf_stm_c_mpi_send_d.o    sf_stm_c_mpi_send_i.o    sf_stm_finalize.o        \
+       sf_stm_gather_d.o        sf_stm_gather_i.o        sf_stm_obst.o            sf_stm_scatter_d.o       \
+       sf_str0.o                sf_str1.o                sf_str2.o                sf_str3.o                \
+       sf_stria.o               sf_str_obst.o            sf_tetdiv.o              sf_tetvol.o              \
+       sf_trm1.o                sf_trm2.o                sf_trns1.o               sf_trns2.o               \
+       sf_updt_obst.o           sf_vecml.o               sf_volchk.o              sf_wt_restart.o         

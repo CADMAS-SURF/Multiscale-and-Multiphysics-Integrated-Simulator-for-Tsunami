@@ -1,0 +1,89 @@
+      SUBROUTINE JACOBI(A,E,V,N,M,FAC,I9,ND,K,ITO)
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+C
+      DIMENSION A(ND,ND),E(ND),V(ND,ND)
+C
+C      JACOBI EIGENVALUE SUBR
+C
+C      A      SYMMETRIC MATRIX TO BE SOLVED
+C      E      EIGENVALUE                             (OUTPUT)
+C      V      EIGENVECTOR (COLUMNWISE MODE)          (OUTPUT)
+C      M      MAX ITERATION CYCLE
+C      FAC    CONVERGENCE FACTOR
+C      I9     DEBUG WRITE OPTION
+C      K      ACTUAL ITERATION CYCLE FOR CONVERGENCE (OUTPUT)
+C
+      DO 2000 I=1,N
+      DO 1700 J=1,N
+ 1700 V(I,J)=0.0D0
+ 2000 V(I,I)=1.0D0
+C
+      DO 7000 K=1,M
+      IF(I9.EQ.0) GO TO 3500
+C
+C
+ 3500 IP=1
+      IQ=2
+      NM=N-1
+      DO 4100 I=1,NM
+      IR=I+1
+      DO 4000 J=IR,N
+      IF(DABS(A(I,J)).LE.DABS(A(IP,IQ))) GO TO 4000
+      IP=I
+      IQ=J
+ 4000 CONTINUE
+ 4100 CONTINUE
+C
+      IF(DABS(A(IP,IQ)).LT.FAC) GO TO 7200
+C
+      IF(I9.EQ.0) GO TO 4500
+      WRITE(ITO,4209) K,IP,IQ
+ 4209 FORMAT(' ITERATION=',I4,'  P AND Q=',2I5)
+ 4500 IF(A(IP,IP).EQ.A(IQ,IQ)) GO TO 5000
+      R=2.0D0*A(IP,IQ)/(A(IP,IP)-A(IQ,IQ))
+      T=0.5D0*DATAN(R)
+      GO TO 5500
+C
+ 5000 T=0.78539818D0
+C
+ 5500 IF(I9.EQ.0) GO TO 6000
+      WRITE(ITO,5509) T
+ 5509 FORMAT(' T=',E13.5)
+ 6000 S=DSIN(T)
+      C=DCOS(T)
+C
+C      HALF NEW A=P*A
+C
+      DO 6500 J=1,N
+      A1=A(IP,J)
+      A2=A(IQ,J)
+      A(IP,J)= A1*C+A2*S
+      A(IQ,J)=-A1*S+A2*C
+ 6500 CONTINUE
+C
+C      NEW A=P*A*Q
+C
+      DO 7000 I=1,N
+      A1=A(I,IP)
+      A2=A(I,IQ)
+      A(I,IP)= A1*C+A2*S
+      A(I,IQ)=-A1*S+A2*C
+C
+C      NEW X=X*Q
+C
+      V1=V(I,IP)
+      V2=V(I,IQ)
+      V(I,IP)= V1*C+V2*S
+      V(I,IQ)=-V1*S+V2*C
+ 7000 CONTINUE
+C
+ 7200 DO 7500 I=1,N
+ 7500 E(I)=A(I,I)
+C
+C      REARRANGE INTO DESCENDING ORDER
+C
+      CALL ORDRNF(E,V,N,ND)
+C
+      RETURN
+      END

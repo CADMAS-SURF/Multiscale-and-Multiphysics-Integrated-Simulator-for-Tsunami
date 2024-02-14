@@ -1,0 +1,13 @@
+      SUBROUTINE VRTXSTK(ISLV,POSS,MA,POS,EPS)
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION POS(3,*),ISLV(2),POSS(3)
+
+      CALL LENGTH(XL,POSS,POS(1,MA),3)
+
+      IF( XL < EPS ) THEN
+        ISLV(1) = 11
+        ISLV(2) = MA
+      ENDIF
+
+      END

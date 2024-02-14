@@ -1,0 +1,9 @@
+      SUBROUTINE C_MPI_BARRIER()
+
+      USE MPI_PARAM
+
+      INCLUDE 'mpif.h'
+
+      CALL MPI_BARRIER(CPLWORLD,IERR)
+
+      END

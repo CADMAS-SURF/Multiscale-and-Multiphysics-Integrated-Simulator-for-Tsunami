@@ -1,0 +1,14 @@
+      SUBROUTINE CG_MPI_ISEND_I(ISEND,N,IDEST,IREQ)
+
+      USE MPI_PARAM
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      INCLUDE 'mpif.h'
+
+      DIMENSION ISEND(N)
+
+      CALL MPI_ISEND(ISEND,N,MPI_INTEGER,IDEST,0,CGWORLD,IREQ
+     &              ,IERR)
+
+      END

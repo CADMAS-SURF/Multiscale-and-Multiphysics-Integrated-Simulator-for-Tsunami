@@ -1,0 +1,297 @@
+MODULE INPUT_WORK
+
+  IMPLICIT NONE
+
+  ! --- SUBCASE ---
+
+  INTEGER N_SUB
+
+  ! --- RESTART ---
+
+  INTEGER N_RST
+
+  ! --- CORD2C, CORD2R ---
+
+  INTEGER N_CORD
+  INTEGER M_CORD
+
+  INTEGER, POINTER :: ICRDR(:)
+
+  ! --- GRID ---
+
+  INTEGER N_GRID
+  INTEGER M_GRID
+
+  INTEGER, POINTER :: INDGR(:)
+
+  ! --- CTRIA3, CTRIA6, CQUAD4, CQUAD8 ---
+
+  INTEGER N_SHEL
+
+  INTEGER, POINTER :: J_SHEL(:,:)
+
+  ! --- CTETRA, CHEXA ---
+
+  INTEGER N_SOL
+
+  INTEGER, POINTER :: J_SOL(:,:)
+
+  ! --- CROD ---
+
+  INTEGER N_ROD
+
+  INTEGER, POINTER :: J_ROD(:,:)
+
+  ! --- CBAR ---
+
+  INTEGER N_BAR
+
+  INTEGER, POINTER :: J_BAR(:,:)
+  REAL(8), POINTER :: R_BAR(:,:)
+
+  ! --- CELAS1, CELAS2 ---
+
+  INTEGER N_ELS
+
+  INTEGER, POINTER :: J_ELS(:,:)
+  REAL(8), POINTER :: R_ELS(:,:)
+
+  ! --- ALL ELEMENT TYPES ---
+
+  INTEGER M_ELEM
+
+  INTEGER, POINTER :: IELR(:)
+
+  ! --- PSHELL ---
+
+  INTEGER N_PSHEL
+
+  INTEGER, POINTER :: J_PSHEL(:,:)
+  REAL(8), POINTER :: R_PSHEL(:)
+
+  ! --- PSOLID ---
+
+  INTEGER N_PSOL
+
+  INTEGER, POINTER :: J_PSOL(:,:)
+
+  ! --- PROD ---
+
+  INTEGER N_PROD
+
+  INTEGER, POINTER :: J_PROD(:,:)
+  REAL(8), POINTER :: R_PROD(:)
+
+  ! --- PBAR, PBARL ---
+
+  INTEGER N_PBAR
+
+  INTEGER, POINTER :: J_PBAR(:,:)
+  REAL(8), POINTER :: R_PBAR(:,:)
+
+  ! --- PELAS ---
+
+  INTEGER N_PELS
+
+  INTEGER, POINTER :: J_PELS(:)
+  REAL(8), POINTER :: R_PELS(:,:)
+
+  ! --- MAT1, MAT9 ---
+
+  INTEGER N_MAT
+  INTEGER M_MAT
+
+  INTEGER, POINTER :: IMATR(:)
+
+  ! --- MATT1 ---
+
+  INTEGER N_MATT1
+
+  INTEGER, POINTER :: J_MATT1(:,:)
+
+  ! --- TABLEM1 ---
+
+  INTEGER N_TBM1
+  INTEGER N2_TBM1
+  INTEGER M_TBM1
+
+  INTEGER, POINTER :: ITBM1R(:)
+
+  ! --- MATS1 ---
+
+  INTEGER N_MATS1
+
+  INTEGER, POINTER :: J_MATS1(:,:)
+  REAL(8), POINTER :: R_MATS1(:,:)
+
+  ! --- SPCD ---
+
+  INTEGER N_SPCD
+
+  INTEGER, POINTER :: J_SPCD(:,:)
+  REAL(8), POINTER :: R_SPCD(:)
+
+  ! --- LOAD ---
+
+  INTEGER N_LD
+  INTEGER N2_LD
+
+  ! --- FORCE, MOMENT ---
+
+  INTEGER N_FRC
+
+  INTEGER, POINTER :: J_FRC(:,:)
+  REAL(8), POINTER :: R_FRC(:,:)
+
+  ! --- PLOAD4 ---
+
+  INTEGER N_PL4
+
+  INTEGER, POINTER :: J_PL4(:,:)
+  REAL(8), POINTER :: R_PL4(:,:)
+
+  ! --- PLOAD ---
+
+  INTEGER N_PL
+
+  INTEGER, POINTER :: J_PL(:,:)
+  REAL(8), POINTER :: R_PL(:)
+
+  ! --- PLOAD1 ---
+
+  INTEGER N_PL1
+
+  INTEGER, POINTER :: J_PL1(:,:)
+  REAL(8), POINTER :: R_PL1(:)
+
+  ! --- GRAV ---
+
+  INTEGER N_GRV
+
+  ! --- RFORCE ---
+
+  INTEGER N_RFC
+
+  ! --- TEMPD ---
+
+  INTEGER N_TMPD
+
+  INTEGER, POINTER :: J_TMPD(:)
+  REAL(8), POINTER :: R_TMPD(:)
+
+  ! --- TEMP ---
+
+  INTEGER N_TMP
+
+  INTEGER, POINTER :: J_TMP(:,:)
+  REAL(8), POINTER :: R_TMP(:)
+
+  ! --- TEMPP1 ---
+
+  INTEGER N_TMP1
+
+  INTEGER, POINTER :: J_TMP1(:,:)
+  REAL(8), POINTER :: R_TMP1(:,:)
+
+  ! --- SPCADD ---
+
+  INTEGER N_SPCAD
+  INTEGER N2_SPCAD
+
+  ! --- SPC1 ---
+
+  INTEGER N_SPC1
+
+  INTEGER, POINTER :: J_SPC1(:,:)
+
+  ! --- SPC ---
+
+  INTEGER N_SPC
+
+  INTEGER, POINTER :: J_SPC(:,:)
+  REAL(8), POINTER :: R_SPC(:)
+
+  ! --- MPCADD ---
+
+  INTEGER N_MPCAD
+  INTEGER N2_MPCAD
+
+  ! --- MPC ---
+
+  INTEGER N_MPC
+  INTEGER N2_MPC
+
+  INTEGER, POINTER :: J_MPC(:,:)
+  INTEGER, POINTER :: J2_MPC(:,:)
+  REAL(8), POINTER :: R2_MPC(:)
+
+  ! --- EIGRL ---
+
+  INTEGER N_EIG
+
+  ! --- FREQ1 ---
+
+  INTEGER N_FRQ1
+
+  ! --- DLOAD ---
+
+  INTEGER N_DLD
+  INTEGER N2_DLD
+
+  ! --- RLOAD1 ---
+
+  INTEGER N_RLD1
+
+  ! --- LSEQ ---
+
+  INTEGER N_LSEQ
+
+  ! --- TABLED1 ---
+
+  INTEGER N_TBD1
+  INTEGER N2_TBD1
+  INTEGER M_TBD1
+
+  INTEGER, POINTER :: ITBD1R(:)
+
+  ! --- NLPARM ---
+
+  INTEGER N_NLP
+
+  ! --- TSTEP ---
+
+  INTEGER N_TSTP
+  INTEGER N2_TSTP
+
+  ! --- TLOAD1 ---
+
+  INTEGER N_TLD1
+
+  ! --- BCTADD ---
+
+  INTEGER N_BCTAD
+  INTEGER N2_BCTAD
+
+  ! --- BCTSET ---
+
+  INTEGER N_BCTS
+
+  INTEGER, POINTER :: J_BCTS(:,:)
+
+  ! --- BCTPARA ---
+
+  INTEGER N_BCTP
+
+  INTEGER, POINTER :: J_BCTP(:)
+  REAL(8), POINTER :: R_BCTP(:,:)
+
+  ! --- BSURFS ---
+
+  INTEGER N_BSRF
+  INTEGER M_BSRF
+
+  INTEGER, POINTER :: J_BSRF(:,:)
+
+  INTEGER, POINTER :: ICRGR(:)
+
+END MODULE INPUT_WORK

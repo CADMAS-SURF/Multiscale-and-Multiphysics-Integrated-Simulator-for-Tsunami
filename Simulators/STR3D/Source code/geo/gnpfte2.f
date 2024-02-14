@@ -1,0 +1,55 @@
+      SUBROUTINE GNPFTE2(FI,FO,FP,VELG,VELE,X,UD,UDD,P,PB,PD,POR,RKF,RK
+     &                  ,RHOF,GRAV,ITO)
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION WG(5),RLG(4,5),RN(10),DNDX(3,10),X(3,10),GRP(3),P(10)
+     &         ,UDDG(3),UDD(3,10),VELG(3,5),GRAV(3),FIG(10),FI(10)
+     &         ,UD(3,10),PD(10),FO(10),PB(10),FP(3,10),VELE(3)
+
+      DATA WG  / 4*0.075D0, -0.133333333333333D0 /
+      DATA RLG /
+     &    0.500000000000000D0, 0.166666666666667D0, 0.166666666666667D0
+     &  , 0.166666666666667D0
+     &  , 0.166666666666667D0, 0.500000000000000D0, 0.166666666666667D0
+     &  , 0.166666666666667D0
+     &  , 0.166666666666667D0, 0.166666666666667D0, 0.500000000000000D0
+     &  , 0.166666666666667D0
+     &  , 0.166666666666667D0, 0.166666666666667D0, 0.166666666666667D0
+     &  , 0.500000000000000D0
+     &  , 4*0.25D0 /
+
+      FI(:) = 0.
+      FO(:) = 0.
+      FP(:,:) = 0.
+
+      DO I = 1, 5
+
+        CALL SFNTE2(RLG(1,I),RN)
+
+        CALL DERXTE2(DNDX,DET,RLG(1,I),X,ITO)
+
+        CALL AXB(GRP,DNDX,P,3,10,1)
+        CALL AXB(UDDG,UDD,RN,3,10,1)
+                
+        VELG(:,I) = RK * ( -GRP(:) + RHOF*GRAV(:) - RHOF*UDDG(:) )
+
+        CALL ATXB(FIG,DNDX,VELG(1,I),3,10,1)
+
+        FI(:) = FI(:) - FIG(:) * DET * WG(I)
+
+        CALL VECML1(DUD,DNDX,UD,30)
+        CALL VECML1(PDG,RN,PD,10)
+
+        FO(:) = FO(:) - RN(:) * ( DUD + POR / RKF * PDG ) * DET * WG(I)
+
+        CALL VECML1(PG,RN,PB,10)
+
+        FP(:,:) = FP(:,:) + DNDX(:,:) * PG * DET * WG(I)
+
+      ENDDO
+
+!     ----- VELOCITY OF CENTER POINT -----
+
+      VELE(:) = VELG(:,5)
+
+      END

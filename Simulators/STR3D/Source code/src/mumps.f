@@ -1,0 +1,16 @@
+      SUBROUTINE MUMPS(X,NEQSOL,ITO)
+
+      USE M_MUMPS
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION X(NEQSOL)
+
+      MUMPS_PAR%JOB = 5
+
+      CALL M_MPI_BCAST_I(MUMPS_PAR%JOB,1)
+
+      CALL DMUMPS(MUMPS_PAR)
+
+      X(:) = MUMPS_PAR%RHS(:)
+      
+      END

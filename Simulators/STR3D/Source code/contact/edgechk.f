@@ -1,0 +1,15 @@
+      SUBROUTINE EDGECHK(ISLV,POSS,MASTER,FC,EN,IELC,IEDG,POS,ITO)
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION IEDG(6,*),POS(3,*),FC(3),EN(3),IELC(3,*),ISLV(2),POSS(3)
+C----&------------------------------------------------------------------
+      CALL EDGEDL(DL,POSS,IEDG(1,MASTER),POS)
+C
+      IF( DABS(DL) .LE. 1.D-10 ) THEN
+        CALL EDGESLIP(ISLV,FC,EN,MASTER,IEDG(1,MASTER),IELC,POS,ITO)
+      ELSE
+        CALL EDGEOUT(ISLV,DL,IEDG(1,MASTER))
+      ENDIF
+C
+      RETURN
+      END

@@ -1,0 +1,369 @@
+      SUBROUTINE RECV_TBLX(KK)
+
+      USE M_VAL
+      USE MPI_PARAM
+      USE M_PART
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      DIMENSION KK(*),INIT(2)
+
+      INTEGER, POINTER :: NS(:),ISL(:),IELW(:),IELMW(:,:)
+      REAL(8), POINTER :: DMTW(:,:),EPSGW(:,:),SIGGW(:,:),SIGYW(:,:)
+      INTEGER, POINTER :: ISTW(:,:)
+      INTEGER, POINTER :: IWK1(:),IWK2(:,:)
+      REAL(8), POINTER :: WK2(:,:)
+
+      DATA INIT / 2*0 /
+
+      IF( MYRANK == 1 ) CALL M_MPI_SEND_I(23,1,0)  ! SEND IOP=23 TO GLB_COMM
+
+      NNOD = KK(8)
+      NELM = KK(12)
+      NNODC = KK(28)
+      NELMC = KK(29)
+      MGP = KK(36)
+      NM = KK(37)
+      IMATNL = KK(80)
+      NIGSF = KK(94)
+      NINDC = KK(95)
+      NIELC = KK(97)
+      NIEDG = KK(99)
+      NIELQ = KK(101)
+      NIGSFC = KK(108)
+
+      NPECG = NPROCS - 1
+
+      DO IP = 1, NPECG
+
+!     --- RECV  NS, ISL  &  SEND  NEP, IELW, IELMW, GAUSS POINT DATA ---
+
+      ALLOCATE( NS(NPECG) )
+
+      CALL M_MPI_BCAST_I(NS,NPECG)
+
+      NSLV = NS(MYRANK)
+
+      DEALLOCATE( NS )
+
+      IF( NSLV > 0 ) THEN
+
+        ALLOCATE( ISL(NSLV) )
+
+        CALL M_MPI_RECV_I(ISL,NSLV,0)
+
+        ALLOCATE( IELW(SIZE(INDCE)) )
+        ALLOCATE( IELMW(NM,SIZE(INDCE)) )
+
+        ALLOCATE( DMTW(21*MGP,SIZE(INDCE)) )
+        ALLOCATE( EPSGW(6*MGP,SIZE(INDCE)) )
+        ALLOCATE( SIGGW(6*MGP,SIZE(INDCE)) )
+
+        IF( IMATNL == 1 ) THEN
+          ALLOCATE( ISTW(MGP,SIZE(INDCE)) )
+          ALLOCATE( SIGYW(MGP,SIZE(INDCE)) )
+        ENDIF
+
+        JE = 0
+
+        DO I = 1, NSLV
+
+          IND = ISL(I)
+          IS = INDCEA(1,IND)
+          IE = INDCEA(2,IND)
+
+          N = IE - IS + 1
+          JS = JE + 1
+          JE = JE + N
+
+          IELW(JS:JE) = INDCE(IS:IE)
+          IELMW(:,JS:JE) = IELM(:,IELW(JS:JE))
+
+          DMTW(:,JS:JE) = DMT(:,IELW(JS:JE))
+          EPSGW(:,JS:JE) = EPSG(:,IELW(JS:JE))
+          SIGGW(:,JS:JE) = SIGG(:,IELW(JS:JE))
+
+          IF( IMATNL == 1 ) THEN
+            ISTW(:,JS:JE) = IST(:,IELW(JS:JE))
+            SIGYW(:,JS:JE) = SIGY(:,IELW(JS:JE))
+          ENDIF
+
+        ENDDO
+
+        NEP = JE
+
+        DEALLOCATE( ISL )
+
+        CALL M_MPI_SEND_I(NEP,1,0)
+
+        CALL M_MPI_SEND_I(IELW,NEP,0)
+        CALL M_MPI_SEND_I(IELMW,NM*NEP,0)
+
+        CALL M_MPI_SEND_D(DMTW,21*MGP*NEP,0)
+        CALL M_MPI_SEND_D(EPSGW,6*MGP*NEP,0)
+        CALL M_MPI_SEND_D(SIGGW,6*MGP*NEP,0)
+
+        IF( IMATNL == 1 ) THEN
+          CALL M_MPI_SEND_I(ISTW,MGP*NEP,0)
+          CALL M_MPI_SEND_D(SIGYW,MGP*NEP,0)
+        ENDIF
+
+        DEALLOCATE( IELW )
+        DEALLOCATE( IELMW )
+
+        DEALLOCATE( DMTW )
+        DEALLOCATE( EPSGW )
+        DEALLOCATE( SIGGW )
+
+        IF( IMATNL == 1 ) THEN
+          DEALLOCATE( ISTW )
+          DEALLOCATE( SIGYW )
+        ENDIF
+
+      ENDIF
+
+      IF( MYRANK /= IP ) CYCLE
+
+!     --- IELM ---
+
+      CALL M_MPI_RECV_I(NELMX,1,0)
+      KK(32) = NELMX
+
+      ALLOCATE( IWK2(NM,NELM+NELMC) )
+      IWK2(:,:) = IELM(:,1:NELM+NELMC)
+      DEALLOCATE( IELM )
+      ALLOCATE( IELM(NM,NELM+NELMC+NELMX) )
+      IELM(:,1:NELM+NELMC) = IWK2(:,:)
+      DEALLOCATE( IWK2 )
+
+      IF( NELMX > 0 ) CALL M_MPI_RECV_I(IELM(1,NELM+NELMC+1),NM*NELMX,0)
+
+!     --- GAUSS POINT DATA ---
+
+      ALLOCATE( WK2(21*MGP,NELM) )
+      WK2(:,:) = DMT(:,1:NELM)
+      DEALLOCATE( DMT )
+      ALLOCATE( DMT(21*MGP,NELM+NELMC+NELMX) )
+      DMT(:,1:NELM) = WK2(:,:)
+      DEALLOCATE( WK2 )
+
+      IF( NELMX > 0 )
+     &  CALL M_MPI_RECV_D(DMT(1,NELM+NELMC+1),21*MGP*NELMX,0)
+
+      ALLOCATE( WK2(6*MGP,NELM) )
+      WK2(:,:) = EPSG(:,1:NELM)
+      DEALLOCATE( EPSG )
+      ALLOCATE( EPSG(6*MGP,NELM+NELMC+NELMX) )
+      EPSG(:,1:NELM) = WK2(:,:)
+      DEALLOCATE( WK2 )
+
+      IF( NELMX > 0 )
+     &  CALL M_MPI_RECV_D(EPSG(1,NELM+NELMC+1),6*MGP*NELMX,0)
+
+      ALLOCATE( WK2(6*MGP,NELM) )
+      WK2(:,:) = SIGG(:,1:NELM)
+      DEALLOCATE( SIGG )
+      ALLOCATE( SIGG(6*MGP,NELM+NELMC+NELMX) )
+      SIGG(:,1:NELM) = WK2(:,:)
+      DEALLOCATE( WK2 )
+
+      IF( NELMX > 0 )
+     &  CALL M_MPI_RECV_D(SIGG(1,NELM+NELMC+1),6*MGP*NELMX,0)
+
+      IF( IMATNL == 1 ) THEN
+
+        ALLOCATE( IWK2(MGP,NELM) )
+        IWK2(:,:) = IST(:,1:NELM)
+        DEALLOCATE( IST )
+        ALLOCATE( IST(MGP,NELM+NELMC+NELMX) )
+        IST(:,1:NELM) = IWK2(:,:)
+        DEALLOCATE( IWK2 )
+
+        IF( NELMX > 0 )
+     &    CALL M_MPI_RECV_I(IST(1,NELM+NELMC+1),MGP*NELMX,0)
+
+        ALLOCATE( WK2(MGP,NELM) )
+        WK2(:,:) = SIGY(:,1:NELM)
+        DEALLOCATE( SIGY )
+        ALLOCATE( SIGY(MGP,NELM+NELMC+NELMX) )
+        SIGY(:,1:NELM) = WK2(:,:)
+        DEALLOCATE( WK2 )
+
+        IF( NELMX > 0 )
+     &    CALL M_MPI_RECV_D(SIGY(1,NELM+NELMC+1),MGP*NELMX,0)
+
+      ENDIF
+
+!     --- GRID ---
+
+      CALL M_MPI_RECV_I(NNODX,1,0)
+      CALL M_MPI_RECV_I(NIGSFX,1,0)
+      KK(31) = NNODX
+      KK(107) = NIGSFX
+
+!     --- INDC ---
+
+      CALL M_MPI_RECV_I(NINDCX,1,0)
+      KK(103) = NINDCX
+
+      ALLOCATE( IWK1(NINDC) )
+      IWK1(:) = INDC(1:NINDC)
+      DEALLOCATE( INDC )
+      ALLOCATE( INDC(NINDC+NINDCX) )
+      INDC(1:NINDC) = IWK1(:)
+      DEALLOCATE( IWK1 )
+
+      IF( NINDCX > 0 ) CALL M_MPI_RECV_I(INDC(NINDC+1),NINDCX,0)
+
+!     --- IELC ---
+
+      CALL M_MPI_RECV_I(NIELCX,1,0)
+      KK(104) = NIELCX
+
+      ALLOCATE( IWK2(3,NIELC) )
+      IWK2(:,:) = IELC(:,1:NIELC)
+      DEALLOCATE( IELC )
+      ALLOCATE( IELC(3,NIELC+NIELCX) )
+      IELC(:,1:NIELC) = IWK2(:,:)
+      DEALLOCATE( IWK2 )
+
+      IF( NIELCX > 0 ) CALL M_MPI_RECV_I(IELC(1,NIELC+1),3*NIELCX,0)
+
+!     --- IEDG ---
+
+      CALL M_MPI_RECV_I(NIEDGX,1,0)
+      KK(105) = NIEDGX
+
+      ALLOCATE( IWK2(6,NIEDG) )
+      IWK2(:,:) = IEDG(:,1:NIEDG)
+      DEALLOCATE( IEDG )
+      ALLOCATE( IEDG(6,NIEDG+NIEDGX) )
+      IEDG(:,1:NIEDG) = IWK2(:,:)
+      DEALLOCATE( IWK2 )
+
+      IF( NIEDGX > 0 ) CALL M_MPI_RECV_I(IEDG(1,NIEDG+1),6*NIEDGX,0)
+
+!     --- IELQ ---
+
+      CALL M_MPI_RECV_I(NIELQX,1,0)
+      KK(106) = NIELQX
+
+      ALLOCATE( IWK2(4,NIELQ) )
+      IWK2(:,:) = IELQ(:,1:NIELQ)
+      DEALLOCATE( IELQ )
+      ALLOCATE( IELQ(4,NIELQ+NIELQX) )
+      IELQ(:,1:NIELQ) = IWK2(:,:)
+      DEALLOCATE( IWK2 )
+
+      IF( NIELQX > 0 ) CALL M_MPI_RECV_I(IELQ(1,NIELQ+1),4*NIELQX,0)
+
+!     --- IFCQ ---
+
+      ALLOCATE( IWK1(NIELC) )
+      IWK1(:) = IFCQ(1:NIELC)
+      DEALLOCATE( IFCQ )
+      ALLOCATE( IFCQ(NIELC+NIELCX) )
+      IFCQ(1:NIELC) = IWK1(:)
+      DEALLOCATE( IWK1 )
+
+      IF( NIELCX > 0 ) CALL M_MPI_RECV_I(IFCQ(NIELC+1),NIELCX,0)
+
+!     --- IEDQ ---
+
+      ALLOCATE( IWK1(NIEDG) )
+      IWK1(:) = IEDQ(1:NIEDG)
+      DEALLOCATE( IEDQ )
+      ALLOCATE( IEDQ(NIEDG+NIEDGX) )
+      IEDQ(1:NIEDG) = IWK1(:)
+      DEALLOCATE( IWK1 )
+
+      IF( NIEDGX > 0 ) CALL M_MPI_RECV_I(IEDQ(NIEDG+1),NIEDGX,0)
+
+!     --- IVRQ ---
+
+      ALLOCATE( IWK1(NNOD+NNODC+NIGSF) )
+      IWK1(:) = IVRQ(1:NNOD+NNODC+NIGSF)
+      DEALLOCATE( IVRQ )
+      ALLOCATE( IVRQ(NNOD+NNODC+NIGSF+NIGSFC+NNODX+NIGSFX) )
+      IVRQ(:) = 0
+      IVRQ(1:NNOD+NNODC+NIGSF) = IWK1(:)
+      DEALLOCATE( IWK1 )
+
+      IF( NIGSFX > 0 )
+     &  CALL M_MPI_RECV_I(IVRQ(NNOD+NNODC+NIGSF+NIGSFC+NNODX+1),NIGSFX
+     &                   ,0)
+
+!     --- ISLV, RSLV, IRANK, IFRIC, FRIC, U0, RL0 ---
+
+      DEALLOCATE( ISLV )
+      DEALLOCATE( RSLV )
+      DEALLOCATE( IRANK )
+      DEALLOCATE( IFRIC )
+      DEALLOCATE( FRIC )
+      DEALLOCATE( U0 )
+      DEALLOCATE( RL0 )
+
+      ALLOCATE( ISLV(2,NINDC+NINDCX) )
+      ALLOCATE( RSLV(3,NINDC+NINDCX) )
+      ALLOCATE( IRANK(NINDC+NINDCX) )
+      ALLOCATE( IFRIC(10,NINDC+NINDCX) )
+      ALLOCATE( FRIC(10,NINDC+NINDCX) )
+      ALLOCATE( U0(3,4,NINDC+NINDCX) )
+      ALLOCATE( RL0(3,NINDC+NINDCX) )
+
+      IF( NINDC + NINDCX > 0 ) THEN
+        CALL M_MPI_RECV_I(ISLV,2*(NINDC+NINDCX),0)
+        CALL M_MPI_RECV_D(RSLV,3*(NINDC+NINDCX),0)
+        CALL M_MPI_RECV_I(IFRIC,10*(NINDC+NINDCX),0)
+        CALL M_MPI_RECV_D(FRIC,10*(NINDC+NINDCX),0)
+        CALL M_MPI_RECV_D(U0,12*(NINDC+NINDCX),0)
+        CALL M_MPI_RECV_D(RL0,3*(NINDC+NINDCX),0)
+      ENDIF
+
+      ENDDO
+
+!     --- IMPORT & EXPORT NODE ---
+
+      CALL M_MPI_RECV_I(NPIMPX,1,0)
+      CALL M_MPI_RECV_I(NIMPX,1,0)
+
+      IF( INIT(1) == 0 ) THEN
+        INIT(1) = 1
+      ELSE
+        DEALLOCATE( IPIMPX )
+        DEALLOCATE( IDXIMPX )
+        DEALLOCATE( NODIMPX )
+      ENDIF
+
+      ALLOCATE( IPIMPX(NPIMPX) )
+      ALLOCATE( IDXIMPX(2,NPIMPX) )
+      ALLOCATE( NODIMPX(NIMPX) )
+
+      IF( NPIMPX > 0 ) THEN
+        CALL M_MPI_RECV_I(IPIMPX,NPIMPX,0)
+        CALL M_MPI_RECV_I(IDXIMPX,2*NPIMPX,0)
+        CALL M_MPI_RECV_I(NODIMPX,NIMPX,0)
+      ENDIF
+
+      CALL M_MPI_RECV_I(NPEXPX,1,0)
+      CALL M_MPI_RECV_I(NEXPX,1,0)
+
+      IF( INIT(2) == 0 ) THEN
+        INIT(2) = 1
+      ELSE
+        DEALLOCATE( IPEXPX )
+        DEALLOCATE( IDXEXPX )
+        DEALLOCATE( NODEXPX )
+      ENDIF
+
+      ALLOCATE( IPEXPX(NPEXPX) )
+      ALLOCATE( IDXEXPX(2,NPEXPX) )
+      ALLOCATE( NODEXPX(NEXPX) )
+
+      IF( NPEXPX > 0 ) THEN
+        CALL M_MPI_RECV_I(IPEXPX,NPEXPX,0)
+        CALL M_MPI_RECV_I(IDXEXPX,2*NPEXPX,0)
+        CALL M_MPI_RECV_I(NODEXPX,NEXPX,0)
+      ENDIF
+
+      END

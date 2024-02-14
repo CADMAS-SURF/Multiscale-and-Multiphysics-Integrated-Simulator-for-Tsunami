@@ -1,0 +1,53 @@
+      SUBROUTINE REMESH0(KK)
+
+      USE M_VAL
+      USE M_PART
+      USE MPI_PARAM
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION KK(*)
+      REAL(8), POINTER :: DELZ1W(:)
+      INTEGER, POINTER :: IFIX(:), IFIX1W(:)
+
+      NNOD = KK(8)
+
+      NPECG = NPROCS - 1
+
+      ALLOCATE( DELZ(NNOD) )
+      ALLOCATE( DELZ1W(MAXVAL(NDZ)) )
+      ALLOCATE( IFIX(NNOD) )
+      ALLOCATE( IFIX1W(MAXVAL(NDZ)) )
+
+      CALL C_MPI_RECV_D(DELZ,NNOD,IROOTC)
+
+      CALL C_MPI_RECV_I(IFIX,NNOD,IROOTC)
+
+      CALL SCATTER_NODAL_I(IFIX,1)
+
+      DO IP = 1, NPECG
+        CALL M_MPI_SEND_I(NDZ(IP),1,IP)
+      ENDDO
+
+      DO IP = 1, NPECG
+        CALL M_MPI_RECV_I(IFIX1W,NDZ(IP),IP)
+        IFIX( IDZ(1:NDZ(IP),IP) ) = IFIX( IDZ(1:NDZ(IP),IP) )
+     &                            + IFIX1W(1:NDZ(IP))
+      ENDDO
+
+      DO I = 1, NNOD
+        IF( IFIX(I) > 0 ) DELZ(I) = 0.D0
+      ENDDO
+
+      CALL SCATTER_NODAL_D(DELZ,1)
+
+      DO IP = 1, NPECG
+        DELZ1W(1:NDZ(IP)) = DELZ( IDZ(1:NDZ(IP),IP) )
+        CALL M_MPI_SEND_D(DELZ1W,NDZ(IP),IP)
+      ENDDO
+
+      DEALLOCATE( DELZ )
+      DEALLOCATE( DELZ1W )
+      DEALLOCATE( IFIX )
+      DEALLOCATE( IFIX1W )
+
+      END

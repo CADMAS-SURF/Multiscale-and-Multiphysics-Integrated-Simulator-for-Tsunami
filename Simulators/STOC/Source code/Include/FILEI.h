@@ -1,0 +1,6 @@
+C
+C ... 入力データの読み込みバッファ用ポインター
+C      CHARACTER CLINE*132,CNUL*132,CFLNM*36
+C      COMMON /FILEC/ CLINE,CNUL,CFLNM
+      INTEGER :: IFLNM
+      COMMON /FILEI/ IFLNM

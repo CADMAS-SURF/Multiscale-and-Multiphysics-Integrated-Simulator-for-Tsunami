@@ -1,0 +1,11 @@
+      SUBROUTINE DTPRDCT(DP,A,B,N)
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      DIMENSION A(N),B(N)
+
+      W = DOT_PRODUCT(A,B)
+
+      CALL CG_MPI_ALLREDUCE_D(W,DP,1,0)
+
+      END

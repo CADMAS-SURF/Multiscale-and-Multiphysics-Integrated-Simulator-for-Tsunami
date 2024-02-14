@@ -1,0 +1,40 @@
+      SUBROUTINE FMP_ROD(IOUT,NER,NROD,IELM,NM,SIGG,MGP,IFL)
+
+      USE MPI_PARAM
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      CHARACTER*1 C /','/
+      DIMENSION SIGG(6*MGP,*),IELM(NM,*)
+
+      INTEGER, POINTER :: IENO(:)
+      REAL(8), POINTER :: SIG(:)
+
+      IF( MYRANK == 0 .AND. NROD == 0 ) RETURN
+
+      ALLOCATE( IENO(NROD) )
+      ALLOCATE( SIG(NROD) )
+
+      IENO(:) = IELM(1,NER+1:NER+NROD)
+      SIG(:) = SIGG(1,NER+1:NER+NROD)
+
+      IF( MYRANK == 0 ) THEN
+
+        WRITE(IFL,'(3(I0,A))') IOUT,C,80,C,1,C
+
+        WRITE(IFL,'(A)') 'Rod Axial Stress'
+
+        CALL WT_VEC(0,0,0,8,IENO,SIG,1,1,NROD,IFL)
+
+      ELSE
+
+       CALL M_MPI_SEND_I(NER,1,0)
+       CALL M_MPI_SEND_I(NROD,1,0)
+       CALL M_MPI_SEND_I(IENO,NROD,0)
+       CALL M_MPI_SEND_D(SIG,NROD,0)
+
+      ENDIF
+
+      DEALLOCATE( IENO )
+      DEALLOCATE( SIG )
+
+      END

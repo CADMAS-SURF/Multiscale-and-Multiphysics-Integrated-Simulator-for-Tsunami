@@ -1,0 +1,10 @@
+      SUBROUTINE SEND_RR(RR,N)
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION RR(*)
+
+      CALL M_MPI_SEND_I(2,1,0)  ! SEND IOP=2 TO GLB_COMM
+      CALL M_MPI_SEND_I(N,1,0)
+      CALL M_MPI_SEND_D(RR(N),1,0)
+
+      END

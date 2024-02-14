@@ -1,0 +1,14 @@
+      SUBROUTINE GSURFX(XG,NDIM,NGX,XX,IELQX)
+
+      IMPLICIT REAL*8(A-H,O-Z)      
+      DIMENSION XG(NDIM,NGX),XX(NDIM,*),IG(4),IELQX(4,NGX)
+
+      DO I = 1, NGX
+
+        IG(:) = IELQX(:,I)
+
+        CALL MEAN4(XG(1,I),XX,NDIM,IG,4)
+
+      ENDDO
+
+      END

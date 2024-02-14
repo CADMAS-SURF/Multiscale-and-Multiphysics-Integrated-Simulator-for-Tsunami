@@ -1,0 +1,12 @@
+      SUBROUTINE VELPN2(VEL,VELG,ND)
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION VEL(3,ND),VELG(3,*)
+
+      IF( ND == 6 ) THEN
+        CALL VINTPN1(VEL,VELG)
+      ELSE
+        CALL VINTPN2(VEL,VELG)
+      ENDIF
+
+      END

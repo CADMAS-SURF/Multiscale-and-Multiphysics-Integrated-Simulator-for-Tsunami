@@ -1,0 +1,11 @@
+      SUBROUTINE RD_RFORCE( IRFC, RFRC, CHAR )
+C
+      IMPLICIT REAL*8 (A-H,O-Z)
+      CHARACTER*80 CHAR
+      DIMENSION IRFC(2), RFRC(3)
+C
+      READ(CHAR,'(BN,8X,2I8,8X,4F8.0)') IRFC(:), A, RFRC(:)
+C
+      RFRC(:) = A * RFRC(:)
+C
+      END

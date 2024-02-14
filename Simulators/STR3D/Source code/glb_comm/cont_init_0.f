@@ -1,0 +1,72 @@
+      SUBROUTINE CONT_INIT_0(KK)
+
+      USE MPI_PARAM
+      USE M_VAL
+      USE M_PART
+
+      IMPLICIT REAL*8 (A-H,O-Z)
+      DIMENSION KK(*)
+      REAL(8), POINTER :: POSW(:,:)
+
+      NNOD = KK(8)
+      NBDY = KK(92)
+      NIGSF = KK(94)
+      NINDC0 = KK(102)
+
+      NPECG = NPROCS - 1
+
+      ALLOCATE( POS(3,NNOD+NIGSF) )
+
+      CALL GATHER_NODAL_D(POS,3)
+
+      CALL GSURFQ(POS(1,NNOD+1),3,NIGSF,POS,IELQ,IVRQ(NNOD+1))
+
+      ALLOCATE( POSW(3,SIZE(NODC,1)) )
+
+      DO IP = 1, NPECG
+        N = NN_EXTC(IP)
+        IF( N > 0 ) THEN
+          POSW(:,1:N) = POS(:,NODC(1:N,IP))
+          CALL M_MPI_SEND_D(POSW,3*N,IP)
+        ENDIF
+      ENDDO
+
+      DEALLOCATE( POSW )
+
+      ALLOCATE( PSLV(3,4,NINDC0) )
+
+      PSLV(:,:,:) = 0.
+
+      PSLV(:,2,:) = POS(:,INDC0(:))
+
+      CALL M_MPI_BCAST_D(PSLV,12*NINDC0)
+
+      DEALLOCATE( PSLV )
+
+      ALLOCATE( RSLV0(3,NINDC0) )
+
+      CALL ISLV_UPDT(ISLV0,ISLVP,RSLV0,NNOD,NINDC0,NPECG,NN_EXT,NN_EXTC
+     &              ,NOD,SIZE(NOD,1),NODG,SIZE(NODG,1),NODP,IEG
+     &              ,SIZE(IEG,1),IEDGP,IEC,SIZE(IEC,1),IELCP,INDC0,IEDG
+     &              ,IELC,IELQ,IFCQ,IEDQ,IVRQ)
+
+      DO IBDY = 1, NBDY
+        CALL ADDSET4(IS,IE,IEDA,IBDY)
+        EDML(IBDY) = 0.
+        DO J = IS, IE
+          CALL LENGTH(DIST,POS(1,IEDG(1,J)),POS(1,IEDG(2,J)),3)
+          EDML(IBDY) = EDML(IBDY) + DIST
+        ENDDO
+        EDML(IBDY) = EDML(IBDY) / ( IE - IS + 1 )
+      ENDDO
+
+      DEALLOCATE( POS )
+
+      ALLOCATE( IFRIC(10,NINDC0) )
+      ALLOCATE( FRIC(10,NINDC0) )
+      ALLOCATE( U0(3,4,NINDC0) )
+      ALLOCATE( RL0(3,NINDC0) )
+
+      IFRIC(:,:) = 0
+
+      END

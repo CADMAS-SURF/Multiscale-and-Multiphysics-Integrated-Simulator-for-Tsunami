@@ -1,0 +1,59 @@
+      SUBROUTINE CG3FWB2( D,A,X  ,NEQ  ,IDSK,IDCG
+     1                 ,ITO)
+C
+C              SUB FOR INCOMPLETE DECOMPOSITION 
+C                 ( BLOCKED NONSYMETRIC-SKYLINE MATRIX)
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+C
+      DIMENSION  A(*),IDSK(NEQ+1),IDCG(*)
+      DIMENSION  D(NEQ) ,X(NEQ)
+C
+C
+C===  write(ITO,1009) (X(I),I=1,5),X(NEQ)
+C1009 FORMAT(' CG3FWB-X=',1P6E15.8)
+C                    * FOWORD SUBSTITUTION *
+      DO 1400 IP=1,NEQ
+      IS=IDSK(IP)+1
+      IE=IDSK(IP+1)-1
+C
+      IF(IS.GT.IE) GO TO 1200
+      DO 1000 J=IS,IE
+C+++  JP=IDCG(J)
+C+++  IF(JP.GE.IP) GO TO 1200
+C+++    X(IP)=X(IP)-A(J)*X(JP)
+      IF(IDCG(J).GE.IP) GO TO 1200
+        X(IP)=X(IP)-A(J)*X(IDCG(J))
+ 1000 CONTINUE
+C
+ 1200 X(IP)=X(IP)*D(IP)
+ 1400 CONTINUE
+C                    * BACWORD SUBSTITUTION *
+C===  write(ITO,2209) (X(I),I=1,5),X(NEQ)
+C2209 FORMAT(' CG3FWB-X=',1P6E15.8)
+C
+      IP=NEQ
+      DO 3200 I=2,NEQ
+      IP=IP-1
+      IS=IDSK(IP)+1
+      IE=IDSK(IP+1)-1
+C
+      IF(IS.GT.IE) GO TO 3200
+      WWW=0.0D0
+      DO 3000 J=IS,IE
+C+++  JP=IDCG(J)
+C+++  IF(JP.GT.IP) THEN
+C+++    WWW=WWW+A(J)*X(JP)
+      IF(IDCG(J).GT.IP .AND. IDCG(J).LE.NEQ) THEN
+        WWW=WWW+A(J)*X(IDCG(J))
+      END IF
+ 3000 CONTINUE
+C
+      X(IP)=X(IP)-WWW*D(IP)
+ 3200 CONTINUE
+C
+C===  write(ITO,3209) (X(I),I=1,5),X(NEQ)
+C3209 FORMAT(' CG3FWB-X=',1P6E15.8)
+C
+      RETURN
+      END

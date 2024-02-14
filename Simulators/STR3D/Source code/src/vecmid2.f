@@ -1,0 +1,33 @@
+      SUBROUTINE VECMID2(RR,RA,RB,INDX,NSIZE)
+C
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION RR(*),RA(NSIZE)
+      DIMENSION INDX(NSIZE)
+C
+C     DO 1000 I=1,NSIZE
+C     IP=INDX(I)
+C     RR(IP)=RR(IP)+RA(I)*RB
+C1000 CONTINUE
+C                       + BLUS-LIKE +
+C     A VECTOR PLUS A VECTOR.
+C     USES UNROLLED LOOPS FOR INCREMENTS EQUAL TO ONE.
+C     JACK DONGARRA, LINPACK, 3/11/78.
+C
+C        CLEAN-UP LOOP
+C
+      M = MOD(NSIZE,4)
+      IF( M .EQ. 0 ) GO TO 40
+      DO 30 I = 1,M
+       RR(INDX(I)) = RR(INDX(I)) + RA(I)*RB
+   30 CONTINUE
+      IF( NSIZE .LT. 4 ) RETURN
+   40 MP1 = M + 1
+      DO 50 I = MP1,NSIZE,4
+       RR(INDX(I)) = RR(INDX(I)) + RA(I)*RB
+       RR(INDX(I+1)) = RR(INDX(I+1)) + RA(I+1)*RB
+       RR(INDX(I+2)) = RR(INDX(I+2)) + RA(I+2)*RB
+       RR(INDX(I+3)) = RR(INDX(I+3)) + RA(I+3)*RB
+   50 CONTINUE
+C
+      RETURN
+      END

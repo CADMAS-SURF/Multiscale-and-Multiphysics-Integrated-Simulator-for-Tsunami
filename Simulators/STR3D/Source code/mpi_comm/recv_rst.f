@@ -1,0 +1,19 @@
+      SUBROUTINE RECV_RST(KK)
+
+      USE MPI_PARAM
+
+      DIMENSION KK(*)
+
+      IF( MYRANK == 0 ) THEN
+        CALL C_MPI_RECV_I(IRSTYP,1,IROOTC)
+        CALL C_MPI_RECV_I(IRETYP,1,IROOTC)
+      ELSE
+        IF( MYRANK == 1 ) CALL M_MPI_SEND_I(32,1,0)  ! SEND IOP=32 TO GLB_COMM
+        CALL M_MPI_BCAST_I(IRSTYP,1)
+        CALL M_MPI_BCAST_I(IRETYP,1)
+      ENDIF
+
+      KK(83) = IRSTYP
+      KK(84) = IRETYP
+
+      END

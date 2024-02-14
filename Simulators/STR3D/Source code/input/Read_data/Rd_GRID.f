@@ -1,0 +1,19 @@
+      SUBROUTINE RD_GRID( INDG, IGCD, GRID, INDGR, I_GRID, CHAR, ITI,
+     &                    ISTR )
+C
+      IMPLICIT REAL*8 (A-H,O-Z)
+      CHARACTER*80 CHAR
+      DIMENSION GRID(3), INDGR(*)
+C
+      IF( ISTR == 0 ) THEN
+        READ(CHAR,'(BN,8X,I8,8X,3F8.0,I8)') INDG, GRID(:), IGCD
+      ELSE
+        READ(CHAR,'(BN,8X,I16,16X,2F16.0)') INDG, GRID(1:2)
+        READ(ITI,'(BN,8X,F16.0,I16)') GRID(3), IGCD
+      ENDIF
+C
+      IGCD = 0
+C
+      INDGR(INDG) = I_GRID
+C
+      END

@@ -1,0 +1,24 @@
+      SUBROUTINE SF_OBST_POR(GGV0,GGV,NF,DBUF)
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      INCLUDE 'VF_A0PRM.h'
+      INCLUDE 'VF_ANUMBI.h'
+      INCLUDE 'VF_APARAI.h'
+
+      DIMENSION GGV(NUMI,NUMJ,NUMK),GGV0(NUMI,NUMJ,NUMK)
+     &         ,NF(NUMI,NUMJ,NUMK),DBUF(NUMBUF*MAXBUF)
+
+      DO K = 2, NUMK - 1
+        DO J = MYJS, MYJE
+          DO I = MYIS, MYIE
+            IF( NF(I,J,K) == -1 ) GGV0(I,J,K) = 0.D0
+          ENDDO
+        ENDDO
+      ENDDO
+
+      CALL VF_P3SRD2(GGV0,DBUF,0)
+
+      GGV = GGV0
+
+      END

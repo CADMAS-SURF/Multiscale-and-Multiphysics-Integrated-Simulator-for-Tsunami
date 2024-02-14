@@ -1,0 +1,47 @@
+      SUBROUTINE SEND_POS(ISEND,IGEO,NNOD,NNODI,NELM,POS,FLUX,TIM,TNEXT)
+
+      USE MPI_PARAM
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      DIMENSION POS(3,NNOD), FLUX(3,NELM)
+
+      IF( TIM == 0.D0 ) THEN
+
+        IF( MYRANK == 0 ) THEN
+
+          CALL C_MPI_SEND_D(POS,3*NNOD,IROOTC)
+          IF( IGEO > 0 ) CALL C_MPI_SEND_D(FLUX,3*NELM,IROOTC)
+
+        ELSE
+
+          IF( MYRANK == 1 ) CALL M_MPI_SEND_I(14,1,0)  ! SEND IOP=14 TO GLB_COMM
+          CALL M_MPI_SEND_D(POS,3*NNODI,0)
+
+        ENDIF
+
+      ENDIF
+
+      IF( TIM >= TNEXT ) THEN
+
+        IF( MYRANK == 0 ) THEN
+
+          CALL C_MPI_SEND_D(POS,3*NNOD,IROOTC)
+          IF( IGEO > 0 ) CALL C_MPI_SEND_D(FLUX,3*NELM,IROOTC)
+
+        ELSE
+
+          IF( MYRANK == 1 ) CALL M_MPI_SEND_I(14,1,0)  ! SEND IOP=14 TO GLB_COMM
+          CALL M_MPI_SEND_D(POS,3*NNODI,0)
+
+        ENDIF
+
+        ISEND = 1
+
+      ELSE
+
+        ISEND = 0
+
+      ENDIF
+
+      END

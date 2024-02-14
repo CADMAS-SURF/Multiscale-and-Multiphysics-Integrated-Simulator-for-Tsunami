@@ -1,0 +1,8 @@
+C
+C ... 入力データの読み込みバッファ
+      CHARACTER(LEN=132) :: CLINE
+      CHARACTER(LEN=132) :: CNUL
+      CHARACTER(LEN=36)  :: CFLNM
+      INTEGER            :: IFLNM,I1DD
+      COMMON /FILEC/ CLINE,CNUL,CFLNM
+      COMMON /FILEI/ IFLNM,I1DD

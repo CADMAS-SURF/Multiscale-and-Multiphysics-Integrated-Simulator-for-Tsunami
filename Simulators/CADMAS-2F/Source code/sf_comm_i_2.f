@@ -1,0 +1,24 @@
+      SUBROUTINE SF_COMM_I_2(IRECV,NR,ISEND,M,NS,IPE,NPE)
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      DIMENSION ISEND(M,NS),IRECV(M,*),IPE(NPE),NR(NPE),IREQ1(NPE)
+     &         ,IREQ2(NPE)
+
+      DO I = 1, NPE
+        CALL SF_MPI_ISEND_I(ISEND,M*NS,IPE(I),IREQ1(I))
+      ENDDO
+
+      IRECV(:,1:NS) = ISEND(:,:)
+
+      IP = NS + 1
+
+      DO I = 1, NPE
+        CALL SF_MPI_IRECV_I(IRECV(1,IP),M*NR(I),IPE(I),IREQ2(I))
+        IP = IP + NR(I)
+      ENDDO
+
+      CALL SF_MPI_WAITALL(NPE,IREQ1)
+      CALL SF_MPI_WAITALL(NPE,IREQ2)
+
+      END

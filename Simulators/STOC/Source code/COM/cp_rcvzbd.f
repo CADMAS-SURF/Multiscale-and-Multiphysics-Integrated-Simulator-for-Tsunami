@@ -1,0 +1,61 @@
+      SUBROUTINE CP_RCVZBD(ZBED_ML,BUF,MX_ML,MY_ML,
+     1                     IEAS,IWES,JSOU,JNOR,
+     2                     NESXM,NESXP,NESYM,NESYP,IPARNT)
+C-----------------------------------------------------------------------
+C     MLの境界値(ZBED)を受信する。
+C-----------------------------------------------------------------------
+C
+      use mod_comm,only: comm_model
+      IMPLICIT NONE
+C
+      INCLUDE  'mpif.h'
+C
+      INTEGER,INTENT(INOUT)::MX_ML,MY_ML
+      INTEGER,INTENT(INOUT)::IEAS,IWES,JSOU,JNOR
+      INTEGER,INTENT(INOUT)::NESXM,NESXP,NESYM,NESYP
+      INTEGER,INTENT(INOUT)::IPARNT
+C
+      REAL(8),INTENT(INOUT)::ZBED_ML(IWES-1:IEAS+1,JSOU-1:JNOR+1)
+      REAL(8),INTENT(INOUT)::BUF(*)
+C
+      INTEGER::ISTAT(MPI_STATUS_SIZE)
+C
+      INTEGER::I,IERROR,IREQ,J,NCOUNT,NDATA
+C
+C ... ZBED_MLを受信する。
+C
+      NDATA=(JNOR-JSOU+3)*(NESXM+2)+(JNOR-JSOU+3)*(NESXP+2)
+     &     +(NESYM+2)*MAX(0,IEAS-IWES-NESXP-NESXM-1)
+     &     +(NESYP+2)*MAX(0,IEAS-IWES-NESXP-NESXM-1)
+C
+      CALL MPI_IRECV(BUF,NDATA,MPI_DOUBLE_PRECISION,IPARNT,
+     &               MPI_ANY_TAG,comm_model,IREQ,IERROR)
+      CALL MPI_WAIT(IREQ,ISTAT,IERROR)
+C
+      NCOUNT=0
+      DO 100 J=JSOU-1,JNOR+1
+      DO 100 I=IWES-1,IWES+NESXM
+      NCOUNT=NCOUNT+1
+      ZBED_ML(I,J)=BUF(NCOUNT)
+  100 CONTINUE
+C
+      DO 110 J=JSOU-1,JNOR+1
+      DO 110 I=IEAS-NESXP,IEAS+1
+      NCOUNT=NCOUNT+1
+      ZBED_ML(I,J)=BUF(NCOUNT)
+  110 CONTINUE
+C
+      DO 120 J=JSOU-1,JSOU+NESYM
+      DO 120 I=IWES+NESXM+1,IEAS-NESXP-1
+      NCOUNT=NCOUNT+1
+      ZBED_ML(I,J)=BUF(NCOUNT)
+  120 CONTINUE
+C
+      DO 130 J=JNOR-NESYP,JNOR+1
+      DO 130 I=IWES+NESXM+1,IEAS-NESXP-1
+      NCOUNT=NCOUNT+1
+      ZBED_ML(I,J)=BUF(NCOUNT)
+  130 CONTINUE
+C
+      RETURN
+      END

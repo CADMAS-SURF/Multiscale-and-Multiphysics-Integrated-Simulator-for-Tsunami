@@ -1,0 +1,12 @@
+      SUBROUTINE FMP_NODE(ID,X,IFL)
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      CHARACTER*200 CHAR
+      DIMENSION X(3)
+      
+      WRITE(CHAR,'(I10,10I3,1P3E13.5,2I2)') 
+     &  ID,0,0,1,46,0,0,0,0,0,0,X(:),0,0
+
+      CALL WT_DATA(CHAR,IFL)
+
+      END

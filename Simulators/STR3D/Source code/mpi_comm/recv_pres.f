@@ -1,0 +1,45 @@
+      SUBROUTINE RECV_PRES(AFC,IPND,PRESS,TNEXT,D_T,NSTEP,NNOD,NPFC
+     &                    ,I_BCT)
+
+      USE MPI_PARAM
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      DIMENSION PRESS(NNOD),AFC(NPFC),IPND(NNOD),D_T(NSTEP)
+
+      IF( MYRANK == 0 ) THEN
+        IF( I_BCT > 0 ) THEN
+          CALL C_MPI_RECV_D(AFC,NPFC,IROOTC)
+          CALL C_MPI_RECV_I(IPND,NNOD,IROOTC)
+        ENDIF
+        CALL C_MPI_RECV_D(PRESS,NNOD,IROOTC)
+        CALL C_MPI_RECV_D(TNEXT,1,IROOTC)
+      ELSE
+        IF( MYRANK == 1 ) THEN
+          CALL M_MPI_SEND_I(12,1,0)  ! SEND IOP=12 TO GLB_COMM
+          CALL M_MPI_SEND_I(I_BCT,1,0)
+        ENDIF
+        IF( I_BCT > 0 ) THEN
+          CALL M_MPI_RECV_D(AFC,NPFC,0)
+          CALL M_MPI_RECV_I(IPND,NNOD,0)
+        ENDIF
+        CALL M_MPI_RECV_D(PRESS,NNOD,0)
+        CALL M_MPI_BCAST_D(TNEXT,1)
+      ENDIF
+
+      IF( TNEXT == 0.D0 ) RETURN
+
+      TIM = 0.
+
+      DO I = 1, NSTEP
+        TIM = TIM + D_T(I)
+        IF( TIM >= TNEXT ) EXIT
+      ENDDO
+
+      IF( MYRANK == 0 ) THEN
+        CALL C_MPI_SEND_D(TIM,1,IROOTC)
+      ELSEIF( MYRANK == 1 ) THEN
+        CALL M_MPI_SEND_D(TIM,1,0)
+      ENDIF
+
+      END

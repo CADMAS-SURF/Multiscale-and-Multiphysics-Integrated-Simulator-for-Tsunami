@@ -1,0 +1,30 @@
+      SUBROUTINE ESTFMTX(ESTF,GRID,UG,VG,ITYP,NP,NNP,RODA,BARD,BVEC,D,S
+     &                  ,IGNL,ITO)
+
+      IMPLICIT REAL*8(A-H,O-Z)
+      DIMENSION ESTF(*),GRID(3,*),UG(6,*),NP(NNP),D(*),S(*),VG(3,2,2)
+     &         ,BARD(*),BVEC(3)
+
+      SELECT CASE( ITYP )
+      CASE( 2, 6 )
+        SELECT CASE( NNP )
+        CASE( 4 )
+          CALL ESTFTE1(ESTF,GRID,UG,NP,D,S,IGNL,ITO)
+        CASE( 10 )
+          CALL ESTFTE2(ESTF,GRID,UG,NP,D,S,IGNL,ITO)
+        CASE( 6 )
+          CALL ESTFPN1(ESTF,GRID,UG,NP,D,S,IGNL,ITO)
+        CASE( 15 )
+          CALL ESTFPN2(ESTF,GRID,UG,NP,D,S,IGNL,ITO)
+        CASE( 8 )
+          CALL ESTFHX1(ESTF,GRID,UG,NP,D,S,IGNL,ITO)
+        CASE( 20 )
+          CALL ESTFHX2(ESTF,GRID,UG,NP,D,S,IGNL,ITO)
+        END SELECT
+      CASE( 3 )
+        CALL ESTFTRS(ESTF,GRID,UG,NP,RODA,D,S,IGNL)
+      CASE( 4 )
+        CALL ESTFBM(ESTF,GRID,UG,VG,NP,BARD(2),BARD(1),BVEC,D,S,IGNL)
+      END SELECT
+
+      END
