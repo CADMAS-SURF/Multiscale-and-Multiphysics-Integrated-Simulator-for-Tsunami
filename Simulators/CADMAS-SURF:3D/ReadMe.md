@@ -5,7 +5,7 @@ CADMAS-SURF/3D source code is stored in the in the Sourse code folder. You can d
 # Recommended pre and post-processors
 + Sketch Up
 + [CADMAS-MESH](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Pre%20and%20post-processors/CADMAS-MESH)
-+ CADMAS-VR
++ [CADMAS-VR](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Pre%20and%20post-processors/CADMAS-VR)
 + ViewKai
 # Important information about CADMAS-SURF/3D
 + License
