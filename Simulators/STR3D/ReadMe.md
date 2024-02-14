@@ -1,5 +1,5 @@
 # STR-3D
-Outline of Functions
+**Outline of Functions**
 1. Analysis type: Direct transient response analysis (static analysis is used initially)
 2. Nonlinear analysis function: Geometric nonlinear (Total Lagrange method) Material nonlinear (elastoplastic) contact (static friction, dynamic friction)
 3. Element library: Tetrahedron, pentahedron, hexahedron, each first-order and second-order element, beam element (rectangular cross section)
