@@ -11,6 +11,11 @@ STR3D source code is stored in the in the Sourse code folder. You can download a
 Supports coupling with CADMAS-2F. You can find more details in the manual.
 # Recommended pre and post-processors
 + Femap
+# Libraries required to build STRs
++ MUMPS
++ METIS
++ scalapack
++ BLAS
 # Important information about STR3D
 + License
 + Main Features
