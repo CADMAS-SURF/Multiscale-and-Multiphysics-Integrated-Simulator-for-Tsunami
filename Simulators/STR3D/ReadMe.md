@@ -11,7 +11,7 @@ STR3D source code is stored in the in the Sourse code folder. You can download a
 Supports coupling with [CADMAS-2F](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Simulators/CADMAS-2F). You can find more details in the manual.
 # Recommended pre and post-processors
 + Femap
-# Libraries required to build STRs
+# Libraries required to build STR
 + MUMPS
 + METIS
 + scalapack
