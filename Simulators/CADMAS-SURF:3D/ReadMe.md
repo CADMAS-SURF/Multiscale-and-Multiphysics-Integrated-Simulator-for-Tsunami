@@ -3,7 +3,7 @@ Numerical Wave Tank CADMAS-SURF/3D is a 3D free surface flow simulator based on 
 # How to download and compile CADMAS-SURF/3D
 CADMAS-SURF/3D source code is stored in the in the Sourse code folder. You can download all the files by clicking on "Code" (green button on the top-right corner) and then select "Download ZIP".
 # Recommended pre and post-processors
-+ [Sketch Up](https://www.sketchup.com/ja)
++ Sketch Up
 + [CADMAS-MESH](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Pre%20and%20post-processors/CADMAS-MESH)
 + [CADMAS-VR](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Pre%20and%20post-processors/CADMAS-VR)
 + [ViewKai](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Pre%20and%20post-processors/ViewKai)
