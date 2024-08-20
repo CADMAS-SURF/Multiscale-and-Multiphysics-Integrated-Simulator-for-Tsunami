@@ -1,0 +1,19 @@
+      SUBROUTINE SF_STR3(DT)
+
+      USE VF_A2ARRAY
+      USE SF_ARRAY
+
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      INCLUDE 'SF_STRUCT.h'
+
+      IF (ICPL*IOT.EQ.1)
+     &  CALL SF_PRSTRN(PRES0,PP,IPGRID,IGNO,POS,ZZ,NF)
+
+      IF (IENS*IOT.EQ.1)
+     &  CALL SF_ENS_OUT(XX,YY,ZZ,UU,VV,WW,PP,FF,GGV,GGX,GGY,GGZ,NF
+     &                 ,INDX,INDY,INDZ)
+
+      CALL SF_WT_RESTART(DT)
+
+      END
