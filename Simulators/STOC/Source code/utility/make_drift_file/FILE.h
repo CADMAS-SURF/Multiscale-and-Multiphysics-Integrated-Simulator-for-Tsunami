@@ -1,2 +1,0 @@
-      INTEGER :: INP,LP
-      COMMON /FILEDV/ INP,LP
