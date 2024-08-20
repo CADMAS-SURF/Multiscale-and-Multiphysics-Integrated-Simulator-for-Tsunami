@@ -4,7 +4,7 @@ Agent is an evacuation simulator based on potential theory that can be coupled w
 AGENT source code is stored in the in the Sourse code folder. You can download all the files by clicking on "Code" (green button on the top-right corner) and then select "Download ZIP".
 # Recommended pre and post-processors
 + [CADMAS-VR](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Pre%20and%20post-processors/CADMAS-VR)
-# Important information about CADMAS-2F
+# Important information about AGENT
 + License
 + Main Features
 + Get in touch
