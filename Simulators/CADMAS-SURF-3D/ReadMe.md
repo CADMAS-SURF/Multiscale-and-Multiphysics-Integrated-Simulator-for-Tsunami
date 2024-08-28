@@ -8,8 +8,7 @@ CADMAS-SURF/3D source code is stored in the in the Sourse code folder. You can d
 + [CADMAS-VR](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Pre%20and%20post-processors/CADMAS-VR)
 + [ViewKai](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Pre%20and%20post-processors/ViewKai)
 # Important information about CADMAS-SURF/3D
-+ License
-+ Main Features
-+ Get in touch
-+ Documentation
-# If you want to know more about CADMAS-SURF/3D, go back to Home
++ [Main Features](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/wiki/Main-Features(CADMAS))
++ [How to cite](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/wiki/How-to-cite)
++ [Documentation](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/wiki/Papers-related-to-CADMAS%E2%80%90SURF-3D)
+# If you want to know more about CADMAS-SURF/3D, go back to [Home](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/wiki)
