@@ -5,8 +5,8 @@ AGENT source code is stored in the in the Sourse code folder. You can download a
 # Recommended pre and post-processors
 + [CADMAS-VR](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/tree/main/Pre%20and%20post-processors/CADMAS-VR)
 # Important information about AGENT
-+ License
-+ Main Features
-+ Get in touch
-+ Documentation
-# If you want to know more about AGENT, go back to Home
++ [How to cite](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/wiki/How-to-cite)
++ [Main Features](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/wiki/Main-features(CADMAS%E2%80%90AGENT))
++ [Get in touch](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/wiki/Get-in-touch)
++ [Documentation](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/wiki/Papers-related-to-CADMAS%E2%80%90AGENT)
+# If you want to know more about AGENT, go back to [Home](https://github.com/CADMAS-SURF/Multiscale-and-Multiphysics-Integrated-Simulator-for-Tsunami/wiki)
